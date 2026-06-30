@@ -1,0 +1,1564 @@
+{
+  "source_pdf": "output\\2af6d5e5a75632bc_Rene_10_pricing\\2af6d5e5a75632bc_Rene_10_pricing.pdf",
+  "bm_name": "pricing models",
+  "name": "pricing models",
+  "description": "An adaptive post-auction local electricity market framework. It dynamically selects the most appropriate pricing mechanism from 11 options (including Average Price, Marginal Price Adjusted by Spread, Cap and Floor Range Midpoint, Weighted Average, Modified Marginal Price, VCG, Nash Bargaining, Shapley Value, Constrained Optimization, Reinforcement Learning, and the proposed Iterative Proportional Adjusting) based on a composite Market Condition Indicator (MCI) composed of market liquidity, price volatility, unmatched demand, surplus, bidding strategies, and historical transaction patterns.",
+  "objective": "Maximize the post-auction traded volume of electricity within a local community to integrate more renewable energy and reduce consumer costs while increasing prosumer revenues.",
+  "symbols": [
+    {
+      "name": "Timestamp",
+      "category": "input",
+      "type": "datetime",
+      "definition": "Date and time of the trading interval",
+      "unit": "ISO8601",
+      "depends_on": [],
+      "dataset_column": "Timestamp",
+      "source_ref": "Section 4.2"
+    },
+    {
+      "name": "member_id",
+      "category": "input",
+      "type": "string",
+      "definition": "Unique identifier of the community member",
+      "unit": "None",
+      "depends_on": [],
+      "dataset_column": "member_id",
+      "source_ref": "Section 4.2"
+    },
+    {
+      "name": "member_type",
+      "category": "input",
+      "type": "string",
+      "definition": "Categorical type of the member (e.g., residential, commercial, prosumer)",
+      "unit": "None",
+      "depends_on": [],
+      "dataset_column": "member_type",
+      "source_ref": "Section 4.2"
+    },
+    {
+      "name": "load",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Individual electricity consumption of a member at a given timestamp",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "load",
+      "source_ref": "Section 4.2"
+    },
+    {
+      "name": "generation",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Individual electricity generation of a member at a given timestamp",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "generation",
+      "source_ref": "Section 4.2"
+    },
+    {
+      "name": "ToU",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Time-of-Use tariff representing the maximum retail purchasing price cap from the main grid",
+      "unit": "Euro/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1 & Tariffs Table"
+    },
+    {
+      "name": "FiT",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Feed-in-Tariff representing the minimum export selling price floor to the main grid",
+      "unit": "Euro/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1 & Tariffs Table"
+    },
+    {
+      "name": "alpha_mpas",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight parameter reflecting importance of the spread in Marginal Price Adjusted by Spread pricing model",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "w_wam",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight parameter in Weighted Average Method pricing model; higher values favor buyers",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "theta_ipa",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Step size parameter controlling price adjustment speed in Iterative Proportional Adjusting mechanism",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 13"
+    },
+    {
+      "name": "epsilon_ipa",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Small convergence threshold for Iterative Proportional Adjusting mechanism",
+      "unit": "Euro/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 14"
+    },
+    {
+      "name": "alpha_mci_1",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Coefficient weighting the unmatched net demand imbalance in Market Condition Indicator",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "alpha_mci_2",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Coefficient weighting market liquidity in Market Condition Indicator",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "alpha_mci_3",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Coefficient weighting price volatility in Market Condition Indicator",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "alpha_mci_4",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Coefficient weighting bidding strategies in Market Condition Indicator",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "alpha_mci_5",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Coefficient weighting historical transaction trends in Market Condition Indicator",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "MT",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Market liquidity threshold to distinguish low/high liquidity states",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "VT",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Volatility threshold to classify price volatility levels",
+      "unit": "Euro/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "MCT_low",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Lower bound of the Market Condition Indicator threshold",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "MCT_high",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Upper bound of the Market Condition Indicator threshold",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "omega_m1",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Dynamic hybrid model weight allocated to the simple pricing mechanism",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "omega_m2",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Dynamic hybrid model weight allocated to the complex pricing mechanism",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "MP",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Marginal price or uniform market-clearing price determined in initial auction round",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1 & Section 4.1"
+    },
+    {
+      "name": "UD",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Total unmatched buyer demand remaining after the initial auction clearing",
+      "unit": "kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "S",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Total surplus seller supply remaining after the initial auction clearing",
+      "unit": "kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "TV",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Traded electricity volume from the initial auction round",
+      "unit": "kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "NAP",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Number of active trading participants in the market",
+      "unit": "dimensionless",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "PV",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Standard deviation of trade prices representing market price volatility",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "MP"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "BS",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Indicator metric evaluating the aggression level of participant bidding strategies",
+      "unit": "dimensionless",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "HTD",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Indicator metric extracted from historical community transaction logs",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "ML",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Market liquidity metric computed as total traded volume divided by active participants",
+      "unit": "kWh/participant",
+      "depends_on": [
+        "TV",
+        "NAP"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "MCI",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Market Condition Indicator tracking overall market health and driving pricing selection",
+      "unit": "dimensionless",
+      "depends_on": [
+        "UD",
+        "S",
+        "ML",
+        "PV",
+        "BS",
+        "HTD",
+        "alpha_mci_1",
+        "alpha_mci_2",
+        "alpha_mci_3",
+        "alpha_mci_4",
+        "alpha_mci_5"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "Selected_Mechanism",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Selected pricing mechanism string for post-auction trading dynamically computed per timestep",
+      "unit": "None",
+      "depends_on": [
+        "ML",
+        "PV",
+        "MCI",
+        "MT",
+        "VT",
+        "MCT_low",
+        "MCT_high"
+      ],
+      "dataset_column": "",
+      "source_ref": "Table B1 (Step 5)"
+    },
+    {
+      "name": "P_Bi",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Remaining buyer i's bid price per unit in post-auction pool",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_Sj",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Remaining seller j's ask price per unit in post-auction pool",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "Q_Bi",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Remaining unmatched buyer i's requested quantity in post-auction pool",
+      "unit": "kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.4"
+    },
+    {
+      "name": "Q_Sj",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Remaining unmatched seller j's surplus quantity in post-auction pool",
+      "unit": "kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.4"
+    },
+    {
+      "name": "P_ij",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Negotiated post-auction transaction price for buyer i and seller j pair",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "Selected_Mechanism",
+        "P_Bi",
+        "P_Sj",
+        "MP",
+        "ToU",
+        "FiT",
+        "alpha_mpas",
+        "w_wam",
+        "theta_ipa",
+        "epsilon_ipa",
+        "omega_m1",
+        "omega_m2"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1, 3.2, 3.3"
+    },
+    {
+      "name": "Q_ij",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Executed post-auction transaction quantity matched between buyer i and seller j",
+      "unit": "kWh",
+      "depends_on": [
+        "Q_Bi",
+        "Q_Sj"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.4 & Equation 15"
+    },
+    {
+      "name": "Benefit_to_ToU",
+      "category": "metric",
+      "type": "vector",
+      "definition": "Aggregated utility savings for buyers achieved by purchasing on local market below ToU grid tariff",
+      "unit": "Euro",
+      "depends_on": [
+        "Q_ij",
+        "P_ij",
+        "ToU"
+      ],
+      "dataset_column": "",
+      "source_ref": "Table 8"
+    },
+    {
+      "name": "Benefit_to_FiT",
+      "category": "metric",
+      "type": "vector",
+      "definition": "Aggregated revenue gains for sellers achieved by trading on local market above FiT grid tariff",
+      "unit": "Euro",
+      "depends_on": [
+        "Q_ij",
+        "P_ij",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Table 8"
+    },
+    {
+      "name": "Cost_Savings_Buyers",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Percentage cost savings achieved by buyers relative to purchasing everything at grid ToU tariffs",
+      "unit": "%",
+      "depends_on": [
+        "Benefit_to_ToU"
+      ],
+      "dataset_column": "",
+      "source_ref": "Table 18"
+    },
+    {
+      "name": "Revenue_Increase_Sellers",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Percentage revenue increase achieved by sellers relative to selling everything at grid FiT tariffs",
+      "unit": "%",
+      "depends_on": [
+        "Benefit_to_FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Table 18"
+    },
+    {
+      "name": "Mean_Traded_Price",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "The average weighted price of post-auction local trades executed",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "P_ij",
+        "Q_ij"
+      ],
+      "dataset_column": "",
+      "source_ref": "Table 18"
+    },
+    {
+      "name": "P_ij_vcg",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Negotiated post-auction price matrix for buyer i and seller j pair under Vickrey-Clarke-Groves (VCG) mechanism",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "MP",
+        "P_Bi",
+        "P_Sj",
+        "ToU",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "P_ij_cgt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Negotiated post-auction price matrix for buyer i and seller j pair under Shapley Value (CGT) mechanism",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "P_Bi",
+        "P_Sj"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "P_ij_colm",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Negotiated post-auction price matrix for buyer i and seller j pair under Constrained Optimization (COLM) mechanism",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "P_Bi",
+        "P_Sj",
+        "ToU",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "P_ij_dmrl",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Negotiated post-auction price matrix for buyer i and seller j pair under Dynamic Reinforcement Learning (DMRL) mechanism",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "P_Bi",
+        "P_Sj",
+        "ToU",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2"
+    }
+  ],
+  "inputs": [
+    {
+      "name": "Timestamp",
+      "definition": "Date and time of the trading interval",
+      "dataset_column": "Timestamp"
+    },
+    {
+      "name": "member_id",
+      "definition": "Unique identifier of the community member",
+      "dataset_column": "member_id"
+    },
+    {
+      "name": "member_type",
+      "definition": "Categorical type of the member (e.g., residential, commercial, prosumer)",
+      "dataset_column": "member_type"
+    },
+    {
+      "name": "load",
+      "definition": "Individual electricity consumption of a member at a given timestamp",
+      "dataset_column": "load"
+    },
+    {
+      "name": "generation",
+      "definition": "Individual electricity generation of a member at a given timestamp",
+      "dataset_column": "generation"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "ToU",
+      "definition": "Time-of-Use tariff representing the maximum retail purchasing price cap from the main grid",
+      "value": null,
+      "unit": "Euro/kWh",
+      "source_ref": "Tariffs CSV Table",
+      "value_source": "ec_tariff",
+      "tariff_key": "ToU"
+    },
+    {
+      "name": "FiT",
+      "definition": "Feed-in-Tariff representing the minimum export selling price floor to the main grid",
+      "value": null,
+      "unit": "Euro/kWh",
+      "source_ref": "Tariffs CSV Table",
+      "value_source": "ec_tariff",
+      "tariff_key": "FiT"
+    },
+    {
+      "name": "alpha_mpas",
+      "definition": "Weight parameter reflecting importance of the spread in Marginal Price Adjusted by Spread pricing model",
+      "value": 0.5,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "w_wam",
+      "definition": "Weight parameter in Weighted Average Method pricing model",
+      "value": 0.6,
+      "unit": "dimensionless",
+      "source_ref": "Table 2 & Table 11",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "theta_ipa",
+      "definition": "Step size parameter controlling price adjustment speed in Iterative Proportional Adjusting mechanism",
+      "value": 0.1,
+      "unit": "dimensionless",
+      "source_ref": "Equation 13",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "epsilon_ipa",
+      "definition": "Small convergence threshold for Iterative Proportional Adjusting mechanism",
+      "value": 0.01,
+      "unit": "Euro/kWh",
+      "source_ref": "Equation 14 & Table 14",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "alpha_mci_1",
+      "definition": "Coefficient weighting the unmatched net demand imbalance in Market Condition Indicator",
+      "value": 0.3,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "alpha_mci_2",
+      "definition": "Coefficient weighting market liquidity in Market Condition Indicator",
+      "value": 0.3,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "alpha_mci_3",
+      "definition": "Coefficient weighting price volatility in Market Condition Indicator",
+      "value": 0.3,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "alpha_mci_4",
+      "definition": "Coefficient weighting bidding strategies in Market Condition Indicator",
+      "value": 0.01,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "alpha_mci_5",
+      "definition": "Coefficient weighting historical transaction trends in Market Condition Indicator",
+      "value": 0.05,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "MT",
+      "definition": "Market liquidity threshold to distinguish low/high liquidity states",
+      "value": 0.5,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "VT",
+      "definition": "Volatility threshold to classify price volatility levels",
+      "value": 0.7,
+      "unit": "Euro/kWh",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "MCT_low",
+      "definition": "Lower bound of the Market Condition Indicator threshold",
+      "value": 0.0,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "MCT_high",
+      "definition": "Upper bound of the Market Condition Indicator threshold",
+      "value": 1.2,
+      "unit": "dimensionless",
+      "source_ref": "Section 4.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_m1",
+      "definition": "Dynamic hybrid model weight allocated to the simple pricing mechanism",
+      "value": 0.5,
+      "unit": "dimensionless",
+      "source_ref": "Section 3.5 & Table B1",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_m2",
+      "definition": "Dynamic hybrid model weight allocated to the complex pricing mechanism",
+      "value": 0.5,
+      "unit": "dimensionless",
+      "source_ref": "Section 3.5 & Table B1",
+      "value_source": "paper",
+      "tariff_key": ""
+    }
+  ],
+  "derived_variables": [
+    {
+      "name": "MP",
+      "definition": "Marginal price or uniform market-clearing price determined in initial auction round",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.1 & Section 4.1"
+    },
+    {
+      "name": "UD",
+      "definition": "Total unmatched buyer demand remaining after the initial auction clearing",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "S",
+      "definition": "Total surplus seller supply remaining after the initial auction clearing",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "TV",
+      "definition": "Traded electricity volume from the initial auction round",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "NAP",
+      "definition": "Number of active trading participants in the market",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "ML",
+      "definition": "Market liquidity metric computed as total traded volume divided by active participants",
+      "depends_on": [
+        "TV",
+        "NAP"
+      ],
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "PV",
+      "definition": "Standard deviation of trade prices representing market price volatility",
+      "depends_on": [
+        "MP"
+      ],
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "BS",
+      "definition": "Indicator metric evaluating the aggression level of participant bidding strategies",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "HTD",
+      "definition": "Indicator metric extracted from historical community transaction logs",
+      "depends_on": [],
+      "source_ref": "Section 3.5"
+    },
+    {
+      "name": "MCI",
+      "definition": "Market Condition Indicator tracking overall market health and driving pricing selection",
+      "depends_on": [
+        "UD",
+        "S",
+        "ML",
+        "PV",
+        "BS",
+        "HTD",
+        "alpha_mci_1",
+        "alpha_mci_2",
+        "alpha_mci_3",
+        "alpha_mci_4",
+        "alpha_mci_5"
+      ],
+      "source_ref": "Section 3.5 & Table B1"
+    },
+    {
+      "name": "Selected_Mechanism",
+      "definition": "Selected pricing mechanism string for post-auction trading dynamically computed per timestep",
+      "depends_on": [
+        "ML",
+        "PV",
+        "MCI",
+        "MT",
+        "VT",
+        "MCT_low",
+        "MCT_high"
+      ],
+      "source_ref": "Table B1 (Step 5)"
+    },
+    {
+      "name": "P_Bi",
+      "definition": "Remaining buyer i's bid price per unit in post-auction pool",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_Sj",
+      "definition": "Remaining seller j's ask price per unit in post-auction pool",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "Q_Bi",
+      "definition": "Remaining unmatched buyer i's requested quantity in post-auction pool",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.4"
+    },
+    {
+      "name": "Q_Sj",
+      "definition": "Remaining unmatched seller j's surplus quantity in post-auction pool",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.4"
+    },
+    {
+      "name": "P_ij",
+      "definition": "Negotiated post-auction transaction price for buyer i and seller j pair",
+      "depends_on": [
+        "Selected_Mechanism",
+        "P_Bi",
+        "P_Sj",
+        "MP",
+        "ToU",
+        "FiT",
+        "alpha_mpas",
+        "w_wam",
+        "theta_ipa",
+        "epsilon_ipa",
+        "omega_m1",
+        "omega_m2"
+      ],
+      "source_ref": "Section 3.1, 3.2, 3.3"
+    },
+    {
+      "name": "Q_ij",
+      "definition": "Executed post-auction transaction quantity matched between buyer i and seller j",
+      "depends_on": [
+        "Q_Bi",
+        "Q_Sj"
+      ],
+      "source_ref": "Section 3.4 & Equation 15"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "Benefit_to_ToU",
+      "definition": "Aggregated utility savings for buyers achieved by purchasing on local market below ToU grid tariff",
+      "depends_on": [
+        "Q_ij",
+        "P_ij",
+        "ToU"
+      ]
+    },
+    {
+      "name": "Benefit_to_FiT",
+      "definition": "Aggregated revenue gains for sellers achieved by trading on local market above FiT grid tariff",
+      "depends_on": [
+        "Q_ij",
+        "P_ij",
+        "FiT"
+      ]
+    },
+    {
+      "name": "Cost_Savings_Buyers",
+      "definition": "Percentage cost savings achieved by buyers relative to purchasing everything at grid ToU tariffs",
+      "depends_on": [
+        "Benefit_to_ToU"
+      ]
+    },
+    {
+      "name": "Revenue_Increase_Sellers",
+      "definition": "Percentage revenue increase achieved by sellers relative to selling everything at grid FiT tariffs",
+      "depends_on": [
+        "Benefit_to_FiT"
+      ]
+    },
+    {
+      "name": "Mean_Traded_Price",
+      "definition": "The average weighted price of post-auction local trades executed",
+      "depends_on": [
+        "P_ij",
+        "Q_ij"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Benefit_to_ToU"
+    },
+    {
+      "name": "Benefit_to_FiT"
+    },
+    {
+      "name": "Cost_Savings_Buyers"
+    },
+    {
+      "name": "Revenue_Increase_Sellers"
+    },
+    {
+      "name": "Mean_Traded_Price"
+    }
+  ],
+  "equations": [
+    {
+      "id": "eq_ml",
+      "expression": "ML = TV / NAP",
+      "output_variable": "ML",
+      "dependencies": [
+        "TV",
+        "NAP"
+      ],
+      "source_ref": "Appendix B, Step 2"
+    },
+    {
+      "id": "eq_mci",
+      "expression": "MCI = alpha_mci_1 * (UD - S) + alpha_mci_2 * ML + alpha_mci_3 * PV + alpha_mci_4 * BS + alpha_mci_5 * HTD",
+      "output_variable": "MCI",
+      "dependencies": [
+        "UD",
+        "S",
+        "ML",
+        "PV",
+        "BS",
+        "HTD",
+        "alpha_mci_1",
+        "alpha_mci_2",
+        "alpha_mci_3",
+        "alpha_mci_4",
+        "alpha_mci_5"
+      ],
+      "source_ref": "Appendix B, Step 3"
+    },
+    {
+      "id": "eq_apm",
+      "expression": "P_ij = (P_Bi + P_Sj) / 2",
+      "output_variable": "P_ij",
+      "dependencies": [
+        "P_Bi",
+        "P_Sj"
+      ],
+      "source_ref": "Table 2"
+    },
+    {
+      "id": "eq_mpas",
+      "expression": "P_ij = MP + alpha_mpas * ((P_Bi - P_Sj) / 2)",
+      "output_variable": "P_ij",
+      "dependencies": [
+        "MP",
+        "alpha_mpas",
+        "P_Bi",
+        "P_Sj"
+      ],
+      "source_ref": "Table 2"
+    },
+    {
+      "id": "eq_cfrm",
+      "expression": "P_ij = (ToU + FiT) / 2",
+      "output_variable": "P_ij",
+      "dependencies": [
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Table 2"
+    },
+    {
+      "id": "eq_wam",
+      "expression": "P_ij = w_wam * P_Bi + (1 - w_wam) * P_Sj",
+      "output_variable": "P_ij",
+      "dependencies": [
+        "w_wam",
+        "P_Bi",
+        "P_Sj"
+      ],
+      "source_ref": "Table 2"
+    },
+    {
+      "id": "eq_mmp",
+      "expression": "P_ij = min(ToU, max(FiT, MP))",
+      "output_variable": "P_ij",
+      "dependencies": [
+        "ToU",
+        "FiT",
+        "MP"
+      ],
+      "source_ref": "Table 2"
+    },
+    {
+      "id": "eq_ipa",
+      "expression": "P_ij = P_ij_k + theta_ipa * ((P_Bi - P_ij_k) + (P_ij_k - P_Sj)) / 2  # iterated until convergence threshold < epsilon_ipa",
+      "output_variable": "P_ij",
+      "dependencies": [
+        "P_Bi",
+        "P_Sj",
+        "theta_ipa",
+        "epsilon_ipa"
+      ],
+      "source_ref": "Equations 12, 13, 14"
+    },
+    {
+      "id": "eq_matching",
+      "expression": "if Q_Bi < Q_Sj: Q_ij = Q_Bi else if Q_Bi > Q_Sj: Q_ij = Q_Sj else: Q_ij = Q_Bi  # executed sequentially through merit order",
+      "output_variable": "Q_ij",
+      "dependencies": [
+        "Q_Bi",
+        "Q_Sj"
+      ],
+      "source_ref": "Section 3.4 & Equation 15"
+    },
+    {
+      "id": "eq_benefit_tou",
+      "expression": "Benefit_to_ToU = sum(Q_ij * (ToU - P_ij))",
+      "output_variable": "Benefit_to_ToU",
+      "dependencies": [
+        "Q_ij",
+        "P_ij",
+        "ToU"
+      ],
+      "source_ref": "Table 8"
+    },
+    {
+      "id": "eq_benefit_fit",
+      "expression": "Benefit_to_FiT = sum(Q_ij * (P_ij - FiT))",
+      "output_variable": "Benefit_to_FiT",
+      "dependencies": [
+        "Q_ij",
+        "P_ij",
+        "FiT"
+      ],
+      "source_ref": "Table 8"
+    },
+    {
+      "id": "eq_vcg",
+      "expression": "P_ij_vcg = (clip(MP + (P_Sj - P_Bi), FiT, ToU) + clip(MP - (P_Bi - P_Sj), FiT, ToU)) / 2",
+      "output_variable": "P_ij_vcg",
+      "dependencies": [
+        "MP",
+        "P_Bi",
+        "P_Sj",
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Section 3.2 & Table 13"
+    },
+    {
+      "id": "eq_cgt",
+      "expression": "P_ij_cgt = 0.4 * P_Bi + 0.6 * P_Sj",
+      "output_variable": "P_ij_cgt",
+      "dependencies": [
+        "P_Bi",
+        "P_Sj"
+      ],
+      "source_ref": "Section 3.2 & Table 15"
+    },
+    {
+      "id": "eq_colm",
+      "expression": "P_ij_colm = clip((P_Bi + P_Sj) / 2, FiT, ToU)",
+      "output_variable": "P_ij_colm",
+      "dependencies": [
+        "P_Bi",
+        "P_Sj",
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Section 3.2 & Table 16"
+    },
+    {
+      "id": "eq_dmrl",
+      "expression": "P_ij_dmrl = clip((P_Bi + P_Sj) / 2 - 0.05, FiT, ToU)",
+      "output_variable": "P_ij_dmrl",
+      "dependencies": [
+        "P_Bi",
+        "P_Sj",
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Section 3.2 & Table 17"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_1",
+      "name": "Execute Initial UP Auction Round",
+      "inputs": [
+        "load",
+        "generation"
+      ],
+      "outputs": [
+        "MP",
+        "UD",
+        "S",
+        "TV",
+        "NAP",
+        "P_Bi",
+        "P_Sj",
+        "Q_Bi",
+        "Q_Sj"
+      ],
+      "equation_refs": [],
+      "pseudocode": [
+        "Rank buyer bids descending and seller asks ascending.",
+        "Clear auction using standard Uniform Price mechanism matching supply and demand.",
+        "Set MP = clearing price from last match.",
+        "Set UD = sum of unmatched buyer demand, S = sum of unmatched seller surplus.",
+        "Store the unmatched bid curves (P_Bi, Q_Bi) and ask curves (P_Sj, Q_Sj) for the post-auction round."
+      ],
+      "predecessors": []
+    },
+    {
+      "id": "step_2",
+      "name": "Calculate Market Liquidity",
+      "inputs": [
+        "TV",
+        "NAP"
+      ],
+      "outputs": [
+        "ML"
+      ],
+      "equation_refs": [
+        "eq_ml"
+      ],
+      "pseudocode": [
+        "ML = TV / NAP"
+      ],
+      "predecessors": [
+        "step_1"
+      ]
+    },
+    {
+      "id": "step_3",
+      "name": "Compute Market Condition Indicator",
+      "inputs": [
+        "UD",
+        "S",
+        "ML",
+        "PV",
+        "BS",
+        "HTD",
+        "alpha_mci_1",
+        "alpha_mci_2",
+        "alpha_mci_3",
+        "alpha_mci_4",
+        "alpha_mci_5"
+      ],
+      "outputs": [
+        "MCI"
+      ],
+      "equation_refs": [
+        "eq_mci"
+      ],
+      "pseudocode": [
+        "MCI = alpha_mci_1 * (UD - S) + alpha_mci_2 * ML + alpha_mci_3 * PV + alpha_mci_4 * BS + alpha_mci_5 * HTD"
+      ],
+      "predecessors": [
+        "step_2"
+      ]
+    },
+    {
+      "id": "step_4",
+      "name": "Apply Decision Rules for Pricing Mechanism Selection",
+      "inputs": [
+        "ML",
+        "PV",
+        "MCI",
+        "MT",
+        "VT",
+        "MCT_low",
+        "MCT_high"
+      ],
+      "outputs": [
+        "Selected_Mechanism"
+      ],
+      "equation_refs": [],
+      "pseudocode": [
+        "if ML < MT:",
+        "    if PV > VT:",
+        "        if MCI > MCT_high:",
+        "            Selected_Mechanism = 'IPA'  # or Hybrid",
+        "        else if MCT_low < MCI <= MCT_high:",
+        "            Selected_Mechanism = 'WAM'",
+        "        else:",
+        "            Selected_Mechanism = 'CFRM'",
+        "    else:",
+        "        Selected_Mechanism = 'APM'",
+        "else:",
+        "    if PV <= VT:",
+        "        if MCI > MCT_high:",
+        "            Selected_Mechanism = 'IPA'  # or Hybrid",
+        "        else if MCT_low < MCI <= MCT_high:",
+        "            Selected_Mechanism = 'MPAS'  # or VCG",
+        "        else:",
+        "            Selected_Mechanism = 'NBS'",
+        "    else:",
+        "        if MCI > MCT_high:",
+        "            Selected_Mechanism = 'COLM'  # or DMRL, IPA, Hybrid",
+        "        else if MCT_low < MCI <= MCT_high:",
+        "            Selected_Mechanism = 'MMP'",
+        "        else:",
+        "            Selected_Mechanism = 'CGT'"
+      ],
+      "predecessors": [
+        "step_3"
+      ]
+    },
+    {
+      "id": "step_5",
+      "name": "Compute Post-Auction Transaction Prices",
+      "inputs": [
+        "Selected_Mechanism",
+        "P_Bi",
+        "P_Sj",
+        "MP",
+        "ToU",
+        "FiT",
+        "alpha_mpas",
+        "w_wam",
+        "theta_ipa",
+        "epsilon_ipa",
+        "omega_m1",
+        "omega_m2"
+      ],
+      "outputs": [
+        "P_ij"
+      ],
+      "equation_refs": [
+        "eq_apm",
+        "eq_mpas",
+        "eq_cfrm",
+        "eq_wam",
+        "eq_mmp",
+        "eq_ipa"
+      ],
+      "pseudocode": [
+        "Switch (Selected_Mechanism):",
+        "  case 'APM': execute eq_apm",
+        "  case 'MPAS': execute eq_mpas",
+        "  case 'CFRM': execute eq_cfrm",
+        "  case 'WAM': execute eq_wam",
+        "  case 'MMP': execute eq_mmp",
+        "  case 'IPA': execute eq_ipa iteratively until convergence delta < epsilon_ipa",
+        "  default: execute eq_apm (NBS equivalents or numerical algorithms for VCG/CGT/COLM)"
+      ],
+      "predecessors": [
+        "step_4"
+      ]
+    },
+    {
+      "id": "step_6",
+      "name": "Compute Post-Auction Matching Quantities",
+      "inputs": [
+        "Q_Bi",
+        "Q_Sj"
+      ],
+      "outputs": [
+        "Q_ij"
+      ],
+      "equation_refs": [
+        "eq_matching"
+      ],
+      "pseudocode": [
+        "Iterate through active buyers i and sellers j matching residual volumes:",
+        "if Q_Bi < Q_Sj:",
+        "  Q_ij = Q_Bi",
+        "  Update residual Q_Sj = Q_Sj - Q_Bi",
+        "else if Q_Bi > Q_Sj:",
+        "  Q_ij = Q_Sj",
+        "  Update residual Q_Bi = Q_Bi - Q_Sj",
+        "else:",
+        "  Q_ij = Q_Bi",
+        "  Set residuals = 0"
+      ],
+      "predecessors": [
+        "step_5"
+      ]
+    },
+    {
+      "id": "step_7",
+      "name": "Calculate Performance Benefits and Metrics",
+      "inputs": [
+        "Q_ij",
+        "P_ij",
+        "ToU",
+        "FiT"
+      ],
+      "outputs": [
+        "Benefit_to_ToU",
+        "Benefit_to_FiT",
+        "Cost_Savings_Buyers",
+        "Revenue_Increase_Sellers",
+        "Mean_Traded_Price"
+      ],
+      "equation_refs": [
+        "eq_benefit_tou",
+        "eq_benefit_fit"
+      ],
+      "pseudocode": [
+        "Benefit_to_ToU = sum(Q_ij * (ToU - P_ij))",
+        "Benefit_to_FiT = sum(Q_ij * (P_ij - FiT))",
+        "Cost_Savings_Buyers = Benefit_to_ToU / sum(Q_ij * ToU)",
+        "Revenue_Increase_Sellers = Benefit_to_FiT / sum(Q_ij * FiT)",
+        "Mean_Traded_Price = sum(Q_ij * P_ij) / sum(Q_ij)"
+      ],
+      "predecessors": [
+        "step_6"
+      ]
+    }
+  ],
+  "code_generation_plan": {
+    "input_mapping": [
+      {
+        "paper_symbol": "load",
+        "canonical_column": "load",
+        "transformation": "None"
+      },
+      {
+        "paper_symbol": "generation",
+        "canonical_column": "generation",
+        "transformation": "None"
+      },
+      {
+        "paper_symbol": "member_id",
+        "canonical_column": "member_id",
+        "transformation": "None"
+      }
+    ],
+    "tariff_mapping": [
+      {
+        "paper_parameter": "ToU",
+        "tariff_key": "ToU",
+        "how_to_align": "Align with hour of Day from Timestamp"
+      },
+      {
+        "paper_parameter": "FiT",
+        "tariff_key": "FiT",
+        "how_to_align": "Align with hour of Day from Timestamp"
+      }
+    ],
+    "parameter_initialization": [
+      {
+        "parameter_name": "alpha_mpas",
+        "default_value": 0.5,
+        "get_expression": "parameters.get('alpha_mpas', 0.5)"
+      },
+      {
+        "parameter_name": "w_wam",
+        "default_value": 0.6,
+        "get_expression": "parameters.get('w_wam', 0.6)"
+      },
+      {
+        "parameter_name": "theta_ipa",
+        "default_value": 0.1,
+        "get_expression": "parameters.get('theta_ipa', 0.1)"
+      },
+      {
+        "parameter_name": "epsilon_ipa",
+        "default_value": 0.01,
+        "get_expression": "parameters.get('epsilon_ipa', 0.01)"
+      },
+      {
+        "parameter_name": "alpha_mci_1",
+        "default_value": 0.3,
+        "get_expression": "parameters.get('alpha_mci_1', 0.3)"
+      },
+      {
+        "parameter_name": "alpha_mci_2",
+        "default_value": 0.3,
+        "get_expression": "parameters.get('alpha_mci_2', 0.3)"
+      },
+      {
+        "parameter_name": "alpha_mci_3",
+        "default_value": 0.3,
+        "get_expression": "parameters.get('alpha_mci_3', 0.3)"
+      },
+      {
+        "parameter_name": "alpha_mci_4",
+        "default_value": 0.01,
+        "get_expression": "parameters.get('alpha_mci_4', 0.01)"
+      },
+      {
+        "parameter_name": "alpha_mci_5",
+        "default_value": 0.05,
+        "get_expression": "parameters.get('alpha_mci_5', 0.05)"
+      },
+      {
+        "parameter_name": "MT",
+        "default_value": 0.5,
+        "get_expression": "parameters.get('MT', 0.5)"
+      },
+      {
+        "parameter_name": "VT",
+        "default_value": 0.7,
+        "get_expression": "parameters.get('VT', 0.7)"
+      },
+      {
+        "parameter_name": "MCT_low",
+        "default_value": 0.0,
+        "get_expression": "parameters.get('MCT_low', 0.0)"
+      },
+      {
+        "parameter_name": "MCT_high",
+        "default_value": 1.2,
+        "get_expression": "parameters.get('MCT_high', 1.2)"
+      },
+      {
+        "parameter_name": "omega_m1",
+        "default_value": 0.5,
+        "get_expression": "parameters.get('omega_m1', 0.5)"
+      },
+      {
+        "parameter_name": "omega_m2",
+        "default_value": 0.5,
+        "get_expression": "parameters.get('omega_m2', 0.5)"
+      }
+    ],
+    "execution_order": [
+      "step_initial_up_clearing",
+      "ML",
+      "MCI",
+      "Selected_Mechanism",
+      "P_ij",
+      "Q_ij",
+      "Benefit_to_ToU",
+      "Benefit_to_FiT",
+      "Cost_Savings_Buyers",
+      "Revenue_Increase_Sellers",
+      "Mean_Traded_Price"
+    ],
+    "pseudocode": [
+      "Step 1: Aligned load and generation per member. Calculate net position: net_i = load_i - generation_i. If net_i > 0, member is buyer with quantity Q_Bi = net_i and bid P_Bi = ToU - 0.05. If net_i < 0, member is seller with quantity Q_Sj = -net_i and ask P_Sj = FiT + 0.05. Sort buyers descending by P_Bi, sellers ascending by P_Sj.",
+      "Step 2: Match buyers and sellers sequentially (merit order). Traded volume TV = sum of matched quantities. NAP = number of unique matched members. MP = the clearing price of the last matched pair. Set remaining unmatched buyer quantities as Q_Bi and seller quantities as Q_Sj.",
+      "Step 3: Compute Market Liquidity: ML = TV / NAP (eq_ml).",
+      "Step 4: Compute Price Volatility: PV = standard deviation of prices in the last 10 timesteps. Bidding strategy aggression BS = mean(P_Bi) - mean(P_Sj). Historical transaction metric HTD = rolling mean of TV over past 24 timesteps.",
+      "Step 5: Compute composite indicator MCI = alpha_mci_1 * (sum(Q_Bi) - sum(Q_Sj)) + alpha_mci_2 * ML + alpha_mci_3 * PV + alpha_mci_4 * BS + alpha_mci_5 * HTD (eq_mci).",
+      "Step 6: Determine Selected_Mechanism based on decision rules:\nif ML < MT:\n    if PV > VT:\n        if MCI > MCT_high: Selected_Mechanism = 'IPA'\n        else if MCT_low < MCI <= MCT_high: Selected_Mechanism = 'WAM'\n        else: Selected_Mechanism = 'CFRM'\n    else: Selected_Mechanism = 'APM'\nelse:\n    if PV <= VT:\n        if MCI > MCT_high: Selected_Mechanism = 'IPA'\n        else if MCT_low < MCI <= MCT_high: Selected_Mechanism = 'MPAS'\n        else: Selected_Mechanism = 'NBS'\n    else:\n        if MCI > MCT_high: Selected_Mechanism = 'COLM'\n        else if MCT_low < MCI <= MCT_high: Selected_Mechanism = 'MMP'\n        else: Selected_Mechanism = 'CGT'",
+      "Step 7: For unmatched pairs (i, j) where Q_Bi > 0 and Q_Sj > 0, compute post-auction transaction prices P_ij based on Selected_Mechanism:\n  - 'APM' or 'NBS': P_ij = (P_Bi + P_Sj) / 2\n  - 'MPAS': P_ij = MP + alpha_mpas * ((P_Bi - P_Sj) / 2)\n  - 'CFRM': P_ij = (ToU + FiT) / 2\n  - 'WAM': P_ij = w_wam * P_Bi + (1 - w_wam) * P_Sj\n  - 'MMP': P_ij = min(ToU, max(FiT, MP))\n  - 'VCG': P_ij = (clip(MP + (P_Sj - P_Bi), FiT, ToU) + clip(MP - (P_Bi - P_Sj), FiT, ToU)) / 2\n  - 'CGT': P_ij = 0.4 * P_Bi + 0.6 * P_Sj\n  - 'COLM': P_ij = clip((P_Bi + P_Sj) / 2, FiT, ToU)\n  - 'DMRL': P_ij = clip((P_Bi + P_Sj) / 2 - 0.05, FiT, ToU)\n  - 'IPA': P_ij = clip(MP - theta_ipa * (P_Sj - P_Bi), FiT, ToU)\n  - 'Hybrid': P_ij = omega_m1 * P_ij_simple + omega_m2 * P_ij_complex (where simple is WAM and complex is IPA)",
+      "Step 8: Compute post-auction matching quantities Q_ij sequentially:\nFor each unmatched pair (i, j):\n  Q_ij = min(Q_Bi, Q_Sj)\n  Update residual quantities: Q_Bi = Q_Bi - Q_ij, Q_Sj = Q_Sj - Q_ij",
+      "Step 9: Compute performance metrics:\nBenefit_to_ToU = sum(Q_ij * (ToU - P_ij))\nBenefit_to_FiT = sum(Q_ij * (P_ij - FiT))\nCost_Savings_Buyers = Benefit_to_ToU / sum(Q_ij * ToU) if sum(Q_ij) > 0 else 0\nRevenue_Increase_Sellers = Benefit_to_FiT / sum(Q_ij * FiT) if sum(Q_ij) > 0 else 0\nMean_Traded_Price = sum(Q_ij * P_ij) / sum(Q_ij) if sum(Q_ij) > 0 else 0"
+    ],
+    "result_dict_keys": [
+      "ML",
+      "MCI",
+      "Selected_Mechanism",
+      "P_ij",
+      "Q_ij",
+      "Benefit_to_ToU",
+      "Benefit_to_FiT",
+      "Cost_Savings_Buyers",
+      "Revenue_Increase_Sellers",
+      "Mean_Traded_Price"
+    ],
+    "validation_checks": [
+      "Check that load and generation columns are non-negative numeric vectors.",
+      "Check that ToU > FiT for all timestamps.",
+      "Verify that Selected_Mechanism maps correctly to one of the 11 supported string identifiers.",
+      "Ensure Q_ij is non-negative and does not exceed available unmatched capacity."
+    ]
+  }
+}

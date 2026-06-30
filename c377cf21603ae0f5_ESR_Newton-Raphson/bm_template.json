@@ -1,0 +1,1434 @@
+{
+  "source_pdf": "output\\c377cf21603ae0f5_ESR_Newton-Raphson\\c377cf21603ae0f5_ESR_Newton-Raphson.pdf",
+  "bm_name": "Newton-Raphson pricing",
+  "name": "Newton-Raphson pricing",
+  "description": "Two-step pricing mechanism for local electricity markets (LEM) using Uniform Pricing (UP) with price caps (ToU/FiT) in the first step, and a choice of either Newton-Raphson post-auction price adjustments (CUPA-PPA) or mediated P2P trading (CUPA-P2P) in the second step to clear remaining unmatched quantities.",
+  "objective": "Maximize local energy trading efficiency, reduce grid dependency, minimize extreme bidding behavior through a profit-redistribution mechanism, and provide stable, fair trading prices within the bounds of Feed-in Tariffs (FiT) and Time-of-Use (ToU) rates.",
+  "symbols": [
+    {
+      "name": "Timestamp",
+      "category": "input",
+      "type": "datetime",
+      "definition": "Date and time of the market trading interval",
+      "unit": "YYYY-MM-DD hh:mm:ss",
+      "depends_on": [],
+      "dataset_column": "Timestamp",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "member_id",
+      "category": "input",
+      "type": "string",
+      "definition": "Unique identifier for each participant in the energy community",
+      "unit": "string",
+      "depends_on": [],
+      "dataset_column": "member_id",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "member_type",
+      "category": "input",
+      "type": "string",
+      "definition": "Type of the market participant (e.g., prosumer, residential, commercial)",
+      "unit": "string",
+      "depends_on": [],
+      "dataset_column": "member_type",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "load",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Electricity consumption (demand) of member m at interval t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "load",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "generation",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Electricity generation (supply) of member m at interval t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "generation",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "ToU",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Time-of-Use tariff representing the buying price of electricity from the grid",
+      "unit": "Euro/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "FiT",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Feed-in Tariff representing the selling price of electricity back to the grid",
+      "unit": "Euro/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "D_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Net demand (quantity bid) of buyer b at trading interval t",
+      "unit": "kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "S_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Net supply (quantity offer) of seller s at trading interval t",
+      "unit": "kWh",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_bid_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Bidding price representing the maximum price buyer b is willing to pay at interval t",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "ToU",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_ask_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Asking price representing the minimum price seller s is willing to accept at interval t",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "ToU",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_UP_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Market-clearing price determined using the Uniform Price auction in step 1",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "D_mt",
+        "S_mt",
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1, Eq (3)"
+    },
+    {
+      "name": "QT_UP_b_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Quantity traded by buyer b under the UP mechanism in step 1 at interval t",
+      "unit": "kWh",
+      "depends_on": [
+        "P_UP_t",
+        "D_mt",
+        "P_bid_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "QT_UP_s_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Quantity traded by seller s under the UP mechanism in step 1 at interval t",
+      "unit": "kWh",
+      "depends_on": [
+        "P_UP_t",
+        "S_mt",
+        "P_ask_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "Unmatched_D_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Unmatched demand quantity of buyer b after the UP mechanism",
+      "unit": "kWh",
+      "depends_on": [
+        "D_mt",
+        "QT_UP_b_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "Unmatched_S_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Unmatched supply quantity of seller s after the UP mechanism",
+      "unit": "kWh",
+      "depends_on": [
+        "S_mt",
+        "QT_UP_s_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "beta",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Iterative adjustment coefficient for CUPA-PPA mechanism solved using Newton-Raphson",
+      "unit": "dimensionless",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1, Eq (10)"
+    },
+    {
+      "name": "P_beta_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Equilibrium clearing price achieved through CUPA-PPA post-auction price adjustments",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "beta",
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1, Eq (9)"
+    },
+    {
+      "name": "P_s_b_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Mediation price for transaction pair between seller s and buyer b under CUPA-P2P",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1, Eq (12)"
+    },
+    {
+      "name": "QT_step2_b_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Additional matched demand cleared in Step 2 (either via PPA or P2P)",
+      "unit": "kWh",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "QT_step2_s_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Additional matched supply cleared in Step 2 (either via PPA or P2P)",
+      "unit": "kWh",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_Tx_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Transaction price used for step 2 cleared quantity (equal to P_beta_t for PPA, P_s_b_mt for P2P)",
+      "unit": "Euro/kWh",
+      "depends_on": [
+        "P_beta_t",
+        "P_s_b_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (24)"
+    },
+    {
+      "name": "PayBack_b_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Profit redistribution payback from buyers who trade at lower prices in step 2",
+      "unit": "Euro",
+      "depends_on": [
+        "QT_step2_b_mt",
+        "P_UP_t",
+        "P_Tx_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1, Eq (16)"
+    },
+    {
+      "name": "PayBack_s_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Profit redistribution payback from sellers who trade at higher prices in step 2",
+      "unit": "Euro",
+      "depends_on": [
+        "QT_step2_s_mt",
+        "P_UP_t",
+        "P_Tx_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1, Eq (17)"
+    },
+    {
+      "name": "Redistribution_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Total payback redistributed equally to all market participants at interval t",
+      "unit": "Euro",
+      "depends_on": [
+        "PayBack_b_mt",
+        "PayBack_s_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "QT_B_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Total traded demand for member m at interval t",
+      "unit": "kWh",
+      "depends_on": [
+        "QT_UP_b_mt",
+        "QT_step2_b_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "QT_S_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Total traded supply (surplus) for member m at interval t",
+      "unit": "kWh",
+      "depends_on": [
+        "QT_UP_s_mt",
+        "QT_step2_s_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "IPay_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Initial payment / utility baseline for member m without LEM trading at interval t",
+      "unit": "Euro",
+      "depends_on": [
+        "D_mt",
+        "S_mt",
+        "ToU",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (23)"
+    },
+    {
+      "name": "FPay_mt",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Final payment / utility value for member m with LEM trading at interval t",
+      "unit": "Euro",
+      "depends_on": [
+        "QT_B_mt",
+        "QT_S_mt",
+        "D_mt",
+        "S_mt",
+        "P_UP_t",
+        "P_Tx_mt",
+        "ToU",
+        "FiT",
+        "Redistribution_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (24)"
+    },
+    {
+      "name": "CST_m",
+      "category": "metric",
+      "type": "vector",
+      "definition": "Cost savings from trading for member m over the entire evaluation period",
+      "unit": "percent",
+      "depends_on": [
+        "IPay_mt",
+        "FPay_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (22)"
+    },
+    {
+      "name": "GDI",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Grid Dependence Index measuring reliance on the centralized grid",
+      "unit": "percent",
+      "depends_on": [
+        "load",
+        "QT_B_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (18)"
+    },
+    {
+      "name": "STR",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Surplus Trading Ratio measuring efficiency of trading local surplus inside the LEM",
+      "unit": "dimensionless",
+      "depends_on": [
+        "QT_S_mt",
+        "S_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (19)"
+    },
+    {
+      "name": "DCR",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Deficit Coverage Ratio measuring local demand coverage inside the LEM",
+      "unit": "dimensionless",
+      "depends_on": [
+        "QT_B_mt",
+        "D_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (20)"
+    },
+    {
+      "name": "ETR",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Energy Trading Ratio representing local trade relative to community total consumption",
+      "unit": "dimensionless",
+      "depends_on": [
+        "QT_B_mt",
+        "load"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (21)"
+    },
+    {
+      "name": "TEI",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Trading Efficiency Index relating final financial flows to local solar generation",
+      "unit": "dimensionless",
+      "depends_on": [
+        "FPay_mt",
+        "generation"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (25)"
+    },
+    {
+      "name": "CST",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Aggregate Cost Savings from Trading across all market participants",
+      "unit": "percent",
+      "depends_on": [
+        "IPay_mt",
+        "FPay_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (22)"
+    },
+    {
+      "name": "Gini",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Gini Index for Savings evaluating financial benefit inequality among LEM members",
+      "unit": "dimensionless",
+      "depends_on": [
+        "CST_m"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.2, Eq (26)"
+    },
+    {
+      "name": "QMaxT_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Maximum tradable quantity of unmatched balances at interval t",
+      "unit": "kWh",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    }
+  ],
+  "inputs": [
+    "Timestamp",
+    "member_id",
+    "member_type",
+    "load",
+    "generation"
+  ],
+  "parameters": [
+    {
+      "name": "ToU",
+      "definition": "Time-of-Use tariff mapping hourly retail electricity price from grid",
+      "value": null,
+      "unit": "Euro/kWh",
+      "source_ref": "Section 3",
+      "value_source": "ec_tariff",
+      "tariff_key": "ToU"
+    },
+    {
+      "name": "FiT",
+      "definition": "Feed-in Tariff mapping hourly purchase rate back to grid",
+      "value": null,
+      "unit": "Euro/kWh",
+      "source_ref": "Section 3",
+      "value_source": "ec_tariff",
+      "tariff_key": "FiT"
+    }
+  ],
+  "derived_variables": [
+    {
+      "name": "D_mt",
+      "definition": "Calculated demand net of local PV generation for each member",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "S_mt",
+      "definition": "Calculated supply surplus of local generation over local load for each member",
+      "depends_on": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_bid_mt",
+      "definition": "Simulated buying price bid representing maximum willingness to pay",
+      "depends_on": [
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Section 4"
+    },
+    {
+      "name": "P_ask_mt",
+      "definition": "Simulated selling price offer representing minimum willingness to accept",
+      "depends_on": [
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Section 4"
+    },
+    {
+      "name": "P_UP_t",
+      "definition": "Uniform market-clearing price calculated during the first-stage auction",
+      "depends_on": [
+        "D_mt",
+        "S_mt",
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (3)"
+    },
+    {
+      "name": "QT_UP_b_mt",
+      "definition": "Matched volume of buyer b cleared at UP price in step 1",
+      "depends_on": [
+        "P_UP_t",
+        "D_mt",
+        "P_bid_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "QT_UP_s_mt",
+      "definition": "Matched volume of seller s cleared at UP price in step 1",
+      "depends_on": [
+        "P_UP_t",
+        "S_mt",
+        "P_ask_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "Unmatched_D_mt",
+      "definition": "Volume of unmatched bids of buyers for further clearance in step 2",
+      "depends_on": [
+        "D_mt",
+        "QT_UP_b_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "Unmatched_S_mt",
+      "definition": "Volume of unmatched offers of sellers for further clearance in step 2",
+      "depends_on": [
+        "S_mt",
+        "QT_UP_s_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "beta",
+      "definition": "Iterative parameter determining scale of pricing shifts to match remaining volume in PPA step 2",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (10)"
+    },
+    {
+      "name": "P_beta_t",
+      "definition": "Adjusted market-clearing equilibrium price computed using Newton-Raphson in CUPA-PPA",
+      "depends_on": [
+        "beta",
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (9)"
+    },
+    {
+      "name": "P_s_b_mt",
+      "definition": "Calculated average price for individual trading matches in CUPA-P2P step 2",
+      "depends_on": [
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (12)"
+    },
+    {
+      "name": "QT_step2_b_mt",
+      "definition": "Assigned cleared demand under step 2 pricing logic (CUPA-PPA or CUPA-P2P)",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "QT_step2_s_mt",
+      "definition": "Assigned cleared supply under step 2 pricing logic (CUPA-PPA or CUPA-P2P)",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "P_Tx_mt",
+      "definition": "Final matched transaction price used for financial settlements in step 2",
+      "depends_on": [
+        "P_beta_t",
+        "P_s_b_mt"
+      ],
+      "source_ref": "Section 3.2, Eq (24)"
+    },
+    {
+      "name": "PayBack_b_mt",
+      "definition": "Value computed to capture buyer's profit margins under post-auction adjustments",
+      "depends_on": [
+        "QT_step2_b_mt",
+        "P_UP_t",
+        "P_Tx_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (16)"
+    },
+    {
+      "name": "PayBack_s_mt",
+      "definition": "Value computed to capture seller's profit margins under post-auction adjustments",
+      "depends_on": [
+        "QT_step2_s_mt",
+        "P_UP_t",
+        "P_Tx_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (17)"
+    },
+    {
+      "name": "Redistribution_t",
+      "definition": "Equal monetary rebate distributed per participant at interval t",
+      "depends_on": [
+        "PayBack_b_mt",
+        "PayBack_s_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "name": "QT_B_mt",
+      "definition": "Summed traded demand from primary and secondary clearing mechanisms",
+      "depends_on": [
+        "QT_UP_b_mt",
+        "QT_step2_b_mt"
+      ],
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "QT_S_mt",
+      "definition": "Summed traded supply from primary and secondary clearing mechanisms",
+      "depends_on": [
+        "QT_UP_s_mt",
+        "QT_step2_s_mt"
+      ],
+      "source_ref": "Section 3.2"
+    },
+    {
+      "name": "IPay_mt",
+      "definition": "Baseline costs or revenues of participants without any LEM integration",
+      "depends_on": [
+        "D_mt",
+        "S_mt",
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Section 3.2, Eq (23)"
+    },
+    {
+      "name": "FPay_mt",
+      "definition": "Final net costs or revenues for community members after accounting for market transactions",
+      "depends_on": [
+        "QT_B_mt",
+        "QT_S_mt",
+        "D_mt",
+        "S_mt",
+        "P_UP_t",
+        "P_Tx_mt",
+        "ToU",
+        "FiT",
+        "Redistribution_t"
+      ],
+      "source_ref": "Section 3.2, Eq (24)"
+    },
+    {
+      "name": "QMaxT_t",
+      "definition": "Maximum tradable quantity of unmatched balances at interval t",
+      "depends_on": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "source_ref": "Section 3.1"
+    }
+  ],
+  "metrics": [
+    "CST_m",
+    "GDI",
+    "STR",
+    "DCR",
+    "ETR",
+    "TEI",
+    "CST",
+    "Gini"
+  ],
+  "outputs": [
+    {
+      "name": "P_UP_t"
+    },
+    {
+      "name": "P_beta_t"
+    },
+    {
+      "name": "QT_B_mt"
+    },
+    {
+      "name": "QT_S_mt"
+    },
+    {
+      "name": "FPay_mt"
+    },
+    {
+      "name": "GDI"
+    },
+    {
+      "name": "STR"
+    },
+    {
+      "name": "DCR"
+    },
+    {
+      "name": "ETR"
+    },
+    {
+      "name": "TEI"
+    },
+    {
+      "name": "CST"
+    },
+    {
+      "name": "Gini"
+    },
+    {
+      "name": "QMaxT_t"
+    }
+  ],
+  "equations": [
+    {
+      "id": "Eq_1",
+      "expression": "D_mt = max(0, load - generation)",
+      "output_variable": "D_mt",
+      "dependencies": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "id": "Eq_2",
+      "expression": "S_mt = max(0, generation - load)",
+      "output_variable": "S_mt",
+      "dependencies": [
+        "load",
+        "generation"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "id": "Eq_3",
+      "expression": "Sort buyers descending by P_bid_mt and sellers ascending by P_ask_mt. P_UP_t is the price where cumulative demand intersects cumulative supply, i.e., Sum(D_mt * I(P_bid_mt >= P_UP_t)) >= Sum(S_mt * I(P_ask_mt <= P_UP_t)) and the prior element constraint holds.",
+      "output_variable": "P_UP_t",
+      "dependencies": [
+        "D_mt",
+        "S_mt",
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (3)"
+    },
+    {
+      "id": "Eq_4",
+      "expression": "Unmatched_D_mt = D_mt - QT_UP_b_mt",
+      "output_variable": "Unmatched_D_mt",
+      "dependencies": [
+        "D_mt",
+        "QT_UP_b_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "id": "Eq_5",
+      "expression": "Unmatched_S_mt = S_mt - QT_UP_s_mt",
+      "output_variable": "Unmatched_S_mt",
+      "dependencies": [
+        "S_mt",
+        "QT_UP_s_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "id": "Eq_6",
+      "expression": "beta_i = beta_{i-1} - f(beta_{i-1})/f'(beta_{i-1}) where f(beta) = min(Sum(Unmatched_D_mt), Sum(Unmatched_S_mt)) - min(D_beta, S_beta)",
+      "output_variable": "beta",
+      "dependencies": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (10)"
+    },
+    {
+      "id": "Eq_7",
+      "expression": "P_beta_t = 0.5 * ( (1/Nb) * Sum( (1 + beta)*P_bid_mt ) + (1/Ns) * Sum( (1 - beta)*P_ask_mt ) )",
+      "output_variable": "P_beta_t",
+      "dependencies": [
+        "beta",
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (9)"
+    },
+    {
+      "id": "Eq_8",
+      "expression": "P_s_b_mt = 0.5 * (P_ask_mt + P_bid_mt) for adjacent pairs in sorted unmatched lists",
+      "output_variable": "P_s_b_mt",
+      "dependencies": [
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (12)"
+    },
+    {
+      "id": "Eq_9",
+      "expression": "PayBack_b_mt = QT_step2_b_mt * (P_UP_t - P_Tx_mt) if P_Tx_mt < P_UP_t else 0",
+      "output_variable": "PayBack_b_mt",
+      "dependencies": [
+        "QT_step2_b_mt",
+        "P_UP_t",
+        "P_Tx_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (16)"
+    },
+    {
+      "id": "Eq_10",
+      "expression": "PayBack_s_mt = QT_step2_s_mt * (P_Tx_mt - P_UP_t) if P_Tx_mt > P_UP_t else 0",
+      "output_variable": "PayBack_s_mt",
+      "dependencies": [
+        "QT_step2_s_mt",
+        "P_UP_t",
+        "P_Tx_mt"
+      ],
+      "source_ref": "Section 3.1, Eq (17)"
+    },
+    {
+      "id": "Eq_11",
+      "expression": "Redistribution_t = (Sum_m(PayBack_b_mt) + Sum_m(PayBack_s_mt)) / N_participants",
+      "output_variable": "Redistribution_t",
+      "dependencies": [
+        "PayBack_b_mt",
+        "PayBack_s_mt"
+      ],
+      "source_ref": "Section 3.1"
+    },
+    {
+      "id": "Eq_12",
+      "expression": "IPay_mt = (D_mt * ToU) if load >= generation else (S_mt * FiT)",
+      "output_variable": "IPay_mt",
+      "dependencies": [
+        "D_mt",
+        "S_mt",
+        "ToU",
+        "FiT"
+      ],
+      "source_ref": "Section 3.2, Eq (23)"
+    },
+    {
+      "id": "Eq_13",
+      "expression": "FPay_mt = (QT_B_mt * P_UP_t + (D_mt - QT_B_mt) * ToU - Redistribution_t) if load >= generation else (QT_S_mt * P_UP_t + (S_mt - QT_S_mt) * FiT + Redistribution_t) (with adjustments based on P_Tx_mt for secondary trading matches)",
+      "output_variable": "FPay_mt",
+      "dependencies": [
+        "QT_B_mt",
+        "QT_S_mt",
+        "D_mt",
+        "S_mt",
+        "P_UP_t",
+        "P_Tx_mt",
+        "ToU",
+        "FiT",
+        "Redistribution_t"
+      ],
+      "source_ref": "Section 3.2, Eq (24)"
+    },
+    {
+      "id": "Eq_14",
+      "expression": "CST_m = ((IPay_mt - FPay_mt)/IPay_mt)*100 for buyers, and ((FPay_mt - IPay_mt)/IPay_mt)*100 for sellers (integrated over evaluation horizon)",
+      "output_variable": "CST_m",
+      "dependencies": [
+        "IPay_mt",
+        "FPay_mt"
+      ],
+      "source_ref": "Section 3.2, Eq (22)"
+    },
+    {
+      "id": "Eq_15",
+      "expression": "GDI = (Sum_t(Sum_m(load_mt - QT_B_mt)) / Sum_t(Sum_m(load_mt))) * 100",
+      "output_variable": "GDI",
+      "dependencies": [
+        "load",
+        "QT_B_mt"
+      ],
+      "source_ref": "Section 3.2, Eq (18)"
+    },
+    {
+      "id": "Eq_16",
+      "expression": "STR = Sum_t(Sum_m(QT_S_mt)) / Sum_t(Sum_m(S_mt))",
+      "output_variable": "STR",
+      "dependencies": [
+        "QT_S_mt",
+        "S_mt"
+      ],
+      "source_ref": "Section 3.2, Eq (19)"
+    },
+    {
+      "id": "Eq_17",
+      "expression": "DCR = Sum_t(Sum_m(QT_B_mt)) / Sum_t(Sum_m(D_mt))",
+      "output_variable": "DCR",
+      "dependencies": [
+        "QT_B_mt",
+        "D_mt"
+      ],
+      "source_ref": "Section 3.2, Eq (20)"
+    },
+    {
+      "id": "Eq_18",
+      "expression": "ETR = Sum_t(Sum_m(QT_B_mt)) / Sum_t(Sum_m(load_mt))",
+      "output_variable": "ETR",
+      "dependencies": [
+        "QT_B_mt",
+        "load"
+      ],
+      "source_ref": "Section 3.2, Eq (21)"
+    },
+    {
+      "id": "Eq_19",
+      "expression": "TEI = Sum_t(Sum_m(FPay_mt)) / Sum_t(Sum_m(generation_mt))",
+      "output_variable": "TEI",
+      "dependencies": [
+        "FPay_mt",
+        "generation"
+      ],
+      "source_ref": "Section 3.2, Eq (25)"
+    },
+    {
+      "id": "Eq_20",
+      "expression": "CST = ((Sum_t(Sum_m(IPay_mt)) - Sum_t(Sum_m(FPay_mt))) / Sum_t(Sum_m(IPay_mt))) * 100",
+      "output_variable": "CST",
+      "dependencies": [
+        "IPay_mt",
+        "FPay_mt"
+      ],
+      "source_ref": "Section 3.2, Eq (22)"
+    },
+    {
+      "id": "Eq_21",
+      "expression": "Gini = Sum_{m=1}^N Sum_{n=1}^N |CST_m - CST_n| / (2 * N^2 * mean(CST_m))",
+      "output_variable": "Gini",
+      "dependencies": [
+        "CST_m"
+      ],
+      "source_ref": "Section 3.2, Eq (26)"
+    },
+    {
+      "id": "Eq_QMaxT",
+      "expression": "QMaxT_t = min(Sum_m(Unmatched_D_mt), Sum_m(Unmatched_S_mt))",
+      "output_variable": "QMaxT_t",
+      "dependencies": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "source_ref": "Section 3.1"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_1",
+      "name": "Local Demand and Supply Calculation",
+      "inputs": [
+        "load",
+        "generation"
+      ],
+      "outputs": [
+        "D_mt",
+        "S_mt"
+      ],
+      "equation_refs": [
+        "Eq_1",
+        "Eq_2"
+      ],
+      "pseudocode": [
+        "D_mt = max(0, load - generation)",
+        "S_mt = max(0, generation - load)"
+      ],
+      "predecessors": []
+    },
+    {
+      "id": "step_2",
+      "name": "Bidding and Offer Price Generation",
+      "inputs": [
+        "ToU",
+        "FiT"
+      ],
+      "outputs": [
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "equation_refs": [],
+      "pseudocode": [
+        "P_bid_mt = randomly generated values between FiT and ToU rates for each buyer",
+        "P_ask_mt = randomly generated values between FiT and ToU rates for each seller"
+      ],
+      "predecessors": []
+    },
+    {
+      "id": "step_3",
+      "name": "First-Stage Uniform Price Auction Clearing",
+      "inputs": [
+        "D_mt",
+        "S_mt",
+        "P_bid_mt",
+        "P_ask_mt"
+      ],
+      "outputs": [
+        "P_UP_t",
+        "QT_UP_b_mt",
+        "QT_UP_s_mt"
+      ],
+      "equation_refs": [
+        "Eq_3"
+      ],
+      "pseudocode": [
+        "For each t:",
+        "  Sort buyers' bids descending of P_bid",
+        "  Sort sellers' offers ascending of P_ask",
+        "  Find price point P_UP_t where cumulative demand == cumulative supply",
+        "  Set matched volumes QT_UP_b_mt and QT_UP_s_mt based on clearing price P_UP_t"
+      ],
+      "predecessors": [
+        "step_1",
+        "step_2"
+      ]
+    },
+    {
+      "id": "step_4",
+      "name": "Identify Unmatched Balances",
+      "inputs": [
+        "D_mt",
+        "S_mt",
+        "QT_UP_b_mt",
+        "QT_UP_s_mt"
+      ],
+      "outputs": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt"
+      ],
+      "equation_refs": [
+        "Eq_4",
+        "Eq_5"
+      ],
+      "pseudocode": [
+        "Unmatched_D_mt = D_mt - QT_UP_b_mt",
+        "Unmatched_S_mt = S_mt - QT_UP_s_mt"
+      ],
+      "predecessors": [
+        "step_3"
+      ]
+    },
+    {
+      "id": "step_5",
+      "name": "Newton-Raphson Post-Auction Pricing (CUPA-PPA)",
+      "inputs": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt",
+        "P_bid_mt",
+        "P_ask_mt",
+        "FiT",
+        "ToU"
+      ],
+      "outputs": [
+        "beta",
+        "P_beta_t",
+        "QT_step2_b_mt",
+        "QT_step2_s_mt"
+      ],
+      "equation_refs": [
+        "Eq_6",
+        "Eq_7"
+      ],
+      "pseudocode": [
+        "Initialize beta = 0.001",
+        "Loop to solve f(beta) = 0 via Newton-Raphson:",
+        "  Adjust bid prices: P_bid_adj = (1 + beta) * P_bid",
+        "  Adjust ask prices: P_ask_adj = (1 - beta) * P_ask",
+        "  Update beta_next = beta - f(beta)/f'(beta)",
+        "  If convergence or P_beta_t bounds [FiT, ToU] are breached, stop.",
+        "Set P_beta_t based on final converged beta",
+        "Calculate step 2 trade quantities QT_step2_b_mt and QT_step2_s_mt at P_beta_t"
+      ],
+      "predecessors": [
+        "step_4"
+      ]
+    },
+    {
+      "id": "step_6",
+      "name": "Mediated P2P Alternative Clearing (CUPA-P2P)",
+      "inputs": [
+        "Unmatched_D_mt",
+        "Unmatched_S_mt",
+        "P_bid_mt",
+        "P_ask_mt",
+        "FiT",
+        "ToU"
+      ],
+      "outputs": [
+        "P_s_b_mt",
+        "QT_step2_b_mt",
+        "QT_step2_s_mt"
+      ],
+      "equation_refs": [
+        "Eq_8"
+      ],
+      "pseudocode": [
+        "Alternative option to step_5:",
+        "Sort remaining unmatched bids and offers",
+        "Match sequential pairs directly if prices bounds [FiT, ToU] allow",
+        "Mediation price P_s_b_mt = average(P_ask, P_bid)",
+        "Set step 2 quantities QT_step2_b_mt and QT_step2_s_mt based on matched pairs"
+      ],
+      "predecessors": [
+        "step_4"
+      ]
+    },
+    {
+      "id": "step_7",
+      "name": "Profit Payback and Redistribution",
+      "inputs": [
+        "QT_step2_b_mt",
+        "QT_step2_s_mt",
+        "P_UP_t",
+        "P_Tx_mt"
+      ],
+      "outputs": [
+        "PayBack_b_mt",
+        "PayBack_s_mt",
+        "Redistribution_t"
+      ],
+      "equation_refs": [
+        "Eq_9",
+        "Eq_10",
+        "Eq_11"
+      ],
+      "pseudocode": [
+        "Calculate payback for buyers trading below UP price: PayBack_b_mt",
+        "Calculate payback for sellers trading above UP price: PayBack_s_mt",
+        "Sum paybacks and divide equally across all N participants to compute Redistribution_t"
+      ],
+      "predecessors": [
+        "step_5",
+        "step_6"
+      ]
+    },
+    {
+      "id": "step_8",
+      "name": "Monetary Flows and Savings Evaluation",
+      "inputs": [
+        "D_mt",
+        "S_mt",
+        "QT_B_mt",
+        "QT_S_mt",
+        "P_UP_t",
+        "P_Tx_mt",
+        "ToU",
+        "FiT",
+        "Redistribution_t"
+      ],
+      "outputs": [
+        "IPay_mt",
+        "FPay_mt",
+        "CST_m"
+      ],
+      "equation_refs": [
+        "Eq_12",
+        "Eq_13",
+        "Eq_14"
+      ],
+      "pseudocode": [
+        "Compute baseline payment IPay_mt for all participants",
+        "Compute net payment FPay_mt with transaction costs and redistribution cashflows",
+        "Evaluate individual cost savings percentage CST_m"
+      ],
+      "predecessors": [
+        "step_7"
+      ]
+    },
+    {
+      "id": "step_9",
+      "name": "Community Market Performance Metrics",
+      "inputs": [
+        "load",
+        "generation",
+        "D_mt",
+        "S_mt",
+        "QT_B_mt",
+        "QT_S_mt",
+        "IPay_mt",
+        "FPay_mt",
+        "CST_m"
+      ],
+      "outputs": [
+        "GDI",
+        "STR",
+        "DCR",
+        "ETR",
+        "TEI",
+        "CST",
+        "Gini"
+      ],
+      "equation_refs": [
+        "Eq_15",
+        "Eq_16",
+        "Eq_17",
+        "Eq_18",
+        "Eq_19",
+        "Eq_20",
+        "Eq_21"
+      ],
+      "pseudocode": [
+        "Calculate Grid Dependence Index GDI",
+        "Calculate Surplus Trading Ratio STR",
+        "Calculate Deficit Coverage Ratio DCR",
+        "Calculate Energy Trading Ratio ETR",
+        "Calculate Trading Efficiency Index TEI",
+        "Calculate overall Cost Savings from Trading CST",
+        "Construct Lorenz curve and calculate Gini Index of savings"
+      ],
+      "predecessors": [
+        "step_8"
+      ]
+    }
+  ],
+  "code_generation_plan": {
+    "input_mapping": [
+      {
+        "paper_symbol": "load",
+        "canonical_column": "load",
+        "transformation": "None"
+      },
+      {
+        "paper_symbol": "generation",
+        "canonical_column": "generation",
+        "transformation": "None"
+      },
+      {
+        "paper_symbol": "Timestamp",
+        "canonical_column": "Timestamp",
+        "transformation": "pd.to_datetime"
+      },
+      {
+        "paper_symbol": "member_id",
+        "canonical_column": "member_id",
+        "transformation": "None"
+      }
+    ],
+    "tariff_mapping": [
+      {
+        "paper_parameter": "ToU",
+        "tariff_key": "ToU",
+        "how_to_align": "Align with Timestamp hour/interval directly"
+      },
+      {
+        "paper_parameter": "FiT",
+        "tariff_key": "FiT",
+        "how_to_align": "Align with Timestamp hour/interval directly"
+      }
+    ],
+    "parameter_initialization": [
+      {
+        "parameter_name": "ToU_default",
+        "default_value": 1.0,
+        "expression": "parameters.get('ToU_default', 1.0)"
+      },
+      {
+        "parameter_name": "FiT_default",
+        "default_value": 0.3,
+        "expression": "parameters.get('FiT_default', 0.3)"
+      },
+      {
+        "parameter_name": "beta_init",
+        "default_value": 0.001,
+        "expression": "parameters.get('beta_init', 0.001)"
+      },
+      {
+        "parameter_name": "max_iter",
+        "default_value": 100,
+        "expression": "parameters.get('max_iter', 100)"
+      },
+      {
+        "parameter_name": "tol",
+        "default_value": 1e-05,
+        "expression": "parameters.get('tol', 1e-5)"
+      }
+    ],
+    "execution_order": [
+      "D_mt",
+      "S_mt",
+      "P_bid_mt",
+      "P_ask_mt",
+      "P_UP_t",
+      "QT_UP_b_mt",
+      "QT_UP_s_mt",
+      "Unmatched_D_mt",
+      "Unmatched_S_mt",
+      "QMaxT_t",
+      "beta",
+      "P_beta_t",
+      "P_s_b_mt",
+      "QT_step2_b_mt",
+      "QT_step2_s_mt",
+      "P_Tx_mt",
+      "PayBack_b_mt",
+      "PayBack_s_mt",
+      "Redistribution_t",
+      "QT_B_mt",
+      "QT_S_mt",
+      "IPay_mt",
+      "FPay_mt",
+      "CST_m",
+      "GDI",
+      "STR",
+      "DCR",
+      "ETR",
+      "TEI",
+      "CST",
+      "Gini"
+    ],
+    "pseudocode": [
+      "Step 1 (Eq_1 & Eq_2): Compute net demand D_mt = max(0, load - generation) and net supply S_mt = max(0, generation - load) for each participant m and interval t.",
+      "Step 2: Generate random bid prices P_bid_mt and ask prices P_ask_mt between FiT_t and ToU_t for active buyers and sellers.",
+      "Step 3 (Eq_3): For each interval t, filter out bids outside [FiT_t, ToU_t]. Sort valid buyers descending by P_bid_mt and valid sellers ascending by P_ask_mt. Match pairs sequentially where P_bid >= P_ask. Compute clearing price P_UP_t as the average of the marginal bids of the last matched pair. Assign step-1 cleared volumes QT_UP_b_mt and QT_UP_s_mt.",
+      "Step 4 (Eq_4 & Eq_5): Compute Unmatched_D_mt = D_mt - QT_UP_b_mt and Unmatched_S_mt = S_mt - QT_UP_s_mt.",
+      "Step 5 (Eq_QMaxT): Compute the maximum tradable quantity of unmatched balances QMaxT_t = min(Sum_m(Unmatched_D_mt), Sum_m(Unmatched_S_mt)).",
+      "Step 6 (Eq_6 & Eq_7): For PPA mode, solve for beta using Newton-Raphson. Set initial beta = beta_init. In each iteration, adjust bids by (1 + beta) and asks by (1 - beta). Compute the adjusted average clearing price P_beta_t. Count the matching supply S_beta and demand D_beta at this adjusted price. Update beta using beta_next = beta - f(beta)/f'(beta) where f'(beta) is approximated numerically using a finite step 1e-5. Stop if P_beta_t exceeds [FiT_t, ToU_t], if changes are below tolerance, or if max_iter is reached. Compute QT_step2_b_mt and QT_step2_s_mt as the matched remaining quantities under the converged P_beta_t.",
+      "Step 7 (Eq_8): For P2P mode, sort the unmatched buyers descending and unmatched sellers ascending. Match sequential pairs directly up to QMaxT_t. For each matched pair, compute the average mediation price P_s_b_mt = 0.5 * (P_ask + P_bid). Set step 2 cleared quantities QT_step2_b_mt and QT_step2_s_mt.",
+      "Step 8 (Eq_9 & Eq_10): Calculate payback for buyers who trade below the step-1 clearing price: PayBack_b_mt = QT_step2_b_mt * (P_UP_t - P_Tx_mt) if P_Tx_mt < P_UP_t else 0. Calculate payback for sellers who trade above step-1 clearing price: PayBack_s_mt = QT_step2_s_mt * (P_Tx_mt - P_UP_t) if P_Tx_mt > P_UP_t else 0.",
+      "Step 9 (Eq_11): Compute total payback and distribute equally among all active participants at interval t: Redistribution_t = (Sum_m(PayBack_b_mt) + Sum_m(PayBack_s_mt)) / N.",
+      "Step 10: Sum the step-1 and step-2 trades to find QT_B_mt = QT_UP_b_mt + QT_step2_b_mt and QT_S_mt = QT_UP_s_mt + QT_step2_s_mt.",
+      "Step 11 (Eq_12): Compute baseline cost/revenue IPay_mt = D_mt * ToU_t for buyers and S_mt * FiT_t for sellers.",
+      "Step 12 (Eq_13): Compute the final settlement payment/revenue with trading and redistribution: For buyers, FPay_mt = QT_UP_b_mt * P_UP_t + QT_step2_b_mt * P_Tx_mt + PayBack_b_mt + (D_mt - QT_B_mt) * ToU_t - Redistribution_t. For sellers, FPay_mt = QT_UP_s_mt * P_UP_t + QT_step2_s_mt * P_Tx_mt - PayBack_s_mt + (S_mt - QT_S_mt) * FiT_t + Redistribution_t.",
+      "Step 13 (Eq_14): Evaluate individual cost savings CST_m = ((IPay_mt - FPay_mt)/IPay_mt)*100 for buyers and ((FPay_mt - IPay_mt)/IPay_mt)*100 for sellers.",
+      "Step 14 (Eq_15 - Eq_21): Calculate global metrics: GDI, STR, DCR, ETR, TEI, CST, and the Gini index of savings."
+    ],
+    "result_dict_keys": [
+      "P_UP_t",
+      "P_beta_t",
+      "QT_B_mt",
+      "QT_S_mt",
+      "FPay_mt",
+      "GDI",
+      "STR",
+      "DCR",
+      "ETR",
+      "TEI",
+      "CST",
+      "Gini"
+    ],
+    "validation_checks": [
+      "Verify 'load' and 'generation' columns are present in the input dataset.",
+      "Ensure all timestamps are correctly sorted and unique.",
+      "Check that ToU and FiT tariff rates are non-negative and ToU >= FiT.",
+      "Confirm that cumulative matching quantities in step 1 and step 2 do not exceed physical limits."
+    ]
+  }
+}

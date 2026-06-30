@@ -1,0 +1,875 @@
+{
+  "source_pdf": "output\\39ed5cef6c3dcfa5__ISCO__Energy-1\\39ed5cef6c3dcfa5__ISCO__Energy-1.pdf",
+  "bm_name": "Value Share",
+  "reasoning_summary": "We extracted the system parameters, inputs, and decision variables from the mathematical formulation of the Energy Supply Planning Problem (EPP) and its relaxed linear programming version (EPP-L) with fairness allocation rules. The input variables 'load' and 'generation' were mapped to the dataset columns, while purchasing and selling tariffs were bound to the external hourly tariff table. Finally, we reconstructed the linear optimization models and their respective constraints for proportional and max-min fairness rules as executable steps.",
+  "name": "Value Share - Fair Energy Allocation for Collective Self-Consumption",
+  "description": "A computational model for energy supply planning in collective self-consumption communities that ensures fair allocation of shared renewable energy (PV) and battery storage while minimizing total system cost under different fairness rules (Proportional and Max-Min Fairness).",
+  "objective": "Minimize overall community operational cost consisting of grid purchases, grid sales, and battery maintenance under physical and fairness constraints.",
+  "symbols": [
+    {
+      "name": "Timestamp",
+      "category": "input",
+      "type": "datetime",
+      "definition": "Date and time of the observation",
+      "unit": "YYYY-MM-DD HH:MM:SS",
+      "depends_on": [],
+      "dataset_column": "Timestamp",
+      "source_ref": "Dataset Contract"
+    },
+    {
+      "name": "member_id",
+      "category": "input",
+      "type": "string",
+      "definition": "Unique identifier of the community member",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "member_id",
+      "source_ref": "Dataset Contract"
+    },
+    {
+      "name": "member_type",
+      "category": "input",
+      "type": "string",
+      "definition": "Type of member (e.g. residential)",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "member_type",
+      "source_ref": "Dataset Contract"
+    },
+    {
+      "name": "Dj,t",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Energy demand (load) of house j at time step t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "load",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "CPV_t",
+      "category": "input",
+      "type": "vector",
+      "definition": "PV generation available to the community at time step t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "generation",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "delta",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Time step duration in hours",
+      "unit": "h",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 1"
+    },
+    {
+      "name": "Bt",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Electricity buying tariff from the main grid at time step t",
+      "unit": "EUR/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "beta",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Electricity selling tariff to the main grid at time step t",
+      "unit": "EUR/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "mu",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Battery discharge maintenance cost",
+      "unit": "EUR/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "ec",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Battery charging efficiency",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 1"
+    },
+    {
+      "name": "ed",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Battery discharging efficiency",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 1"
+    },
+    {
+      "name": "Cs",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Battery maximum capacity",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 1"
+    },
+    {
+      "name": "Smin",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Battery minimum storage limit",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 1"
+    },
+    {
+      "name": "F_charge",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Maximum charge rate of the battery",
+      "unit": "kW",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 1"
+    },
+    {
+      "name": "F_discharge",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Maximum discharge rate of the battery",
+      "unit": "kW",
+      "depends_on": [],
+      "source_ref": "Section 1"
+    },
+    {
+      "name": "s0",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Initial state of charge of the battery",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "pj,t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "PV power allocated to house j at time step t",
+      "unit": "kWh",
+      "depends_on": [
+        "CPV_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "yj,t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Discharge energy from battery allocated to house j at time step t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "ij,t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Grid energy imported by house j at time step t",
+      "unit": "kWh",
+      "depends_on": [
+        "Dj,t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "zj,t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Energy stored in battery by house j at time step t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "gj,t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Surplus energy sold to grid by house j at time step t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "st",
+      "category": "derived",
+      "type": "vector",
+      "definition": "State of charge of the battery at time step t",
+      "unit": "kWh",
+      "depends_on": [
+        "s0",
+        "zj,t",
+        "yj,t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "Total_Cost",
+      "category": "output",
+      "type": "scalar",
+      "definition": "Total operating and maintenance cost of the microgrid over the planning horizon",
+      "unit": "EUR",
+      "depends_on": [
+        "yj,t",
+        "ij,t",
+        "gj,t",
+        "Bt",
+        "beta",
+        "mu",
+        "delta"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 1"
+    },
+    {
+      "name": "P_j",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Aggregate PV energy allocated to house j over the planning horizon",
+      "unit": "kWh",
+      "depends_on": [
+        "pj,t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "D_j",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Aggregate energy demand of house j over the planning horizon",
+      "unit": "kWh",
+      "depends_on": [
+        "Dj,t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "lambda_val",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Shared proportional allocation ratio of PV energy to demand",
+      "unit": "dimensionless",
+      "depends_on": [
+        "P_j",
+        "D_j"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1"
+    }
+  ],
+  "inputs": [
+    "Timestamp",
+    "member_id",
+    "member_type",
+    "Dj,t",
+    "CPV_t"
+  ],
+  "parameters": [
+    {
+      "name": "delta",
+      "definition": "Time step duration in hours",
+      "value": 0.25,
+      "unit": "h",
+      "source_ref": "Section 1",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "Bt",
+      "definition": "Electricity buying price from the grid",
+      "value": null,
+      "unit": "EUR/kWh",
+      "source_ref": "Section 2.1",
+      "value_source": "ec_tariff",
+      "tariff_key": "ToU"
+    },
+    {
+      "name": "beta",
+      "definition": "Electricity selling price to the grid",
+      "value": null,
+      "unit": "EUR/kWh",
+      "source_ref": "Section 2.1",
+      "value_source": "ec_tariff",
+      "tariff_key": "FiT"
+    },
+    {
+      "name": "mu",
+      "definition": "Battery discharge maintenance cost",
+      "value": 0.0,
+      "unit": "EUR/kWh",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "ec",
+      "definition": "Battery charging efficiency",
+      "value": 0.95,
+      "unit": "dimensionless",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "ed",
+      "definition": "Battery discharging efficiency",
+      "value": 0.95,
+      "unit": "dimensionless",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "Cs",
+      "definition": "Battery storage capacity limit",
+      "value": 10.5,
+      "unit": "kWh",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "Smin",
+      "definition": "Battery minimum state of charge limit",
+      "value": 0.0,
+      "unit": "kWh",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "F_charge",
+      "definition": "Maximum charge power limit",
+      "value": 5.0,
+      "unit": "kW",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "F_discharge",
+      "definition": "Maximum discharge power limit",
+      "value": 5.0,
+      "unit": "kW",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "s0",
+      "definition": "Initial battery state of charge",
+      "value": 5.25,
+      "unit": "kWh",
+      "source_ref": "Section 4",
+      "value_source": "paper",
+      "tariff_key": ""
+    }
+  ],
+  "derived_variables": [
+    {
+      "name": "pj,t",
+      "definition": "Allocated PV power per house and step",
+      "depends_on": [
+        "CPV_t"
+      ],
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "yj,t",
+      "definition": "Allocated battery discharge per house and step",
+      "depends_on": [],
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "ij,t",
+      "definition": "Allocated grid import per house and step",
+      "depends_on": [
+        "Dj,t"
+      ],
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "zj,t",
+      "definition": "Allocated battery charge per house and step",
+      "depends_on": [],
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "gj,t",
+      "definition": "Allocated grid export per house and step",
+      "depends_on": [],
+      "source_ref": "Section 2.1"
+    },
+    {
+      "name": "st",
+      "definition": "State of charge of battery at time step t",
+      "depends_on": [
+        "s0",
+        "zj,t",
+        "yj,t"
+      ],
+      "source_ref": "Equation 4"
+    },
+    {
+      "name": "P_j",
+      "definition": "Aggregate PV allocation per house over the planning horizon",
+      "depends_on": [
+        "pj,t"
+      ],
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "D_j",
+      "definition": "Aggregate demand per house over the planning horizon",
+      "depends_on": [
+        "Dj,t"
+      ],
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "lambda_val",
+      "definition": "Proportional allocation ratio",
+      "depends_on": [
+        "P_j",
+        "D_j"
+      ],
+      "source_ref": "Section 3.1"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "Total_Cost",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Total monetary cost of the microgrid operation",
+      "unit": "EUR",
+      "depends_on": [
+        "yj,t",
+        "ij,t",
+        "gj,t",
+        "Bt",
+        "beta",
+        "mu",
+        "delta"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 1"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Total_Cost"
+    },
+    {
+      "name": "P_j"
+    },
+    {
+      "name": "D_j"
+    },
+    {
+      "name": "lambda_val"
+    }
+  ],
+  "equations": [
+    {
+      "id": "Eq_1",
+      "expression": "Total_Cost = delta * sum(mu * yj,t + Bt * ij,t - beta * gj,t for j in J for t in T)",
+      "output_variable": "Total_Cost",
+      "dependencies": [
+        "yj,t",
+        "ij,t",
+        "gj,t",
+        "Bt",
+        "beta",
+        "mu",
+        "delta"
+      ],
+      "source_ref": "Equation 1"
+    },
+    {
+      "id": "Eq_4",
+      "expression": "st = st-1 + ec * sum(zj,t for j in J) - ed * sum(yj,t for j in J)",
+      "output_variable": "st",
+      "dependencies": [
+        "st-1",
+        "zj,t",
+        "yj,t",
+        "ec",
+        "ed"
+      ],
+      "source_ref": "Equation 4"
+    },
+    {
+      "id": "Eq_8",
+      "expression": "Dj,t = pj,t + yj,t + ij,t - zj,t - gj,t",
+      "output_variable": "ij,t",
+      "dependencies": [
+        "Dj,t",
+        "pj,t",
+        "yj,t",
+        "zj,t",
+        "gj,t"
+      ],
+      "source_ref": "Equation 8"
+    },
+    {
+      "id": "Eq_18",
+      "expression": "sum(p1,t for t in T) / sum(D1,t for t in T) == sum(pj,t for t in T) / sum(Dj,t for t in T)",
+      "output_variable": "pj,t",
+      "dependencies": [
+        "pj,t",
+        "Dj,t"
+      ],
+      "source_ref": "Equation 18"
+    },
+    {
+      "id": "Eq_20_21",
+      "expression": "sum(pj,t for t in T) <= min(sum(Dj,t for t in T), (sum(CPV_t for t in T) - sum(pk,t for k in range(1, j) for t in T)) / (|J| - j + 1))",
+      "output_variable": "pj,t",
+      "dependencies": [
+        "pj,t",
+        "Dj,t",
+        "CPV_t"
+      ],
+      "source_ref": "Equations 20 & 21"
+    },
+    {
+      "id": "Eq_2",
+      "expression": "Smin <= st <= Cs",
+      "output_variable": "st",
+      "dependencies": [
+        "st",
+        "Smin",
+        "Cs"
+      ],
+      "source_ref": "Equation 2"
+    },
+    {
+      "id": "Eq_3",
+      "expression": "sum(pj,t for j in J) == CPV_t",
+      "output_variable": "pj,t",
+      "dependencies": [
+        "pj,t",
+        "CPV_t"
+      ],
+      "source_ref": "Equation 3"
+    },
+    {
+      "id": "Eq_5",
+      "expression": "s_T == s_0",
+      "output_variable": "st",
+      "dependencies": [
+        "st",
+        "s0"
+      ],
+      "source_ref": "Equation 5"
+    },
+    {
+      "id": "Eq_6",
+      "expression": "sum(yj,t for j in J) <= F_discharge * delta",
+      "output_variable": "yj,t",
+      "dependencies": [
+        "yj,t",
+        "F_discharge",
+        "delta"
+      ],
+      "source_ref": "Equation 6"
+    },
+    {
+      "id": "Eq_7",
+      "expression": "sum(zj,t for j in J) <= F_charge * delta",
+      "output_variable": "zj,t",
+      "dependencies": [
+        "zj,t",
+        "F_charge",
+        "delta"
+      ],
+      "source_ref": "Equation 7"
+    },
+    {
+      "id": "Eq_P_j",
+      "expression": "P_j == sum(pj,t for t in T)",
+      "output_variable": "P_j",
+      "dependencies": [
+        "pj,t"
+      ],
+      "source_ref": "Section 3"
+    },
+    {
+      "id": "Eq_D_j",
+      "expression": "D_j == sum(Dj,t for t in T)",
+      "output_variable": "D_j",
+      "dependencies": [
+        "Dj,t"
+      ],
+      "source_ref": "Section 3"
+    }
+  ],
+  "steps": [
+    {
+      "id": "Step_1_Preprocessing",
+      "name": "Data ingestion and mapping",
+      "inputs": [
+        "Dj,t",
+        "CPV_t",
+        "Bt",
+        "beta"
+      ],
+      "outputs": [],
+      "equation_refs": [],
+      "pseudocode": [
+        "Map database column 'load' to Dj,t indexed by member_id (j) and Timestamp (t).",
+        "Map database column 'generation' to CPV_t indexed by Timestamp (t).",
+        "Import tariffs Bt (ToU) and beta (FiT) from external CSV mapped by hour."
+      ],
+      "predecessors": []
+    },
+    {
+      "id": "Step_2_Optimization",
+      "name": "Solve Linear Programming Model EPP-L",
+      "inputs": [
+        "Dj,t",
+        "CPV_t",
+        "Bt",
+        "beta",
+        "delta",
+        "ec",
+        "ed",
+        "Cs",
+        "Smin",
+        "F_charge",
+        "F_discharge",
+        "s0",
+        "mu"
+      ],
+      "outputs": [
+        "pj,t",
+        "yj,t",
+        "ij,t",
+        "zj,t",
+        "gj,t",
+        "st"
+      ],
+      "equation_refs": [
+        "Eq_4",
+        "Eq_8"
+      ],
+      "pseudocode": [
+        "Define decision variables: pj,t, yj,t, ij,t, zj,t, gj,t, st >= 0.",
+        "Add boundary constraints: Smin <= st <= Cs, sT == s0.",
+        "Add balance of PV generation constraint: sum(pj,t for j in J) == CPV_t for all t.",
+        "Add state of charge dynamics constraint: Eq_4.",
+        "Add battery charging limits: sum(zj,t for j in J) <= F_charge for all t.",
+        "Add battery discharging limits: sum(yj,t for j in J) <= F_discharge for all t.",
+        "Add structural node balance: Eq_8.",
+        "Solve EPP-L as an LP (without integer binary variables due to proven Lemma 1 & Lemma 2)."
+      ],
+      "predecessors": [
+        "Step_1_Preprocessing"
+      ]
+    },
+    {
+      "id": "Step_3_Apply_Fairness",
+      "name": "Integrate Allocation Rule Constraints",
+      "inputs": [
+        "pj,t",
+        "Dj,t"
+      ],
+      "outputs": [
+        "pj,t"
+      ],
+      "equation_refs": [
+        "Eq_18",
+        "Eq_20_21"
+      ],
+      "pseudocode": [
+        "If RULE == 'Proportional':",
+        "    Apply Equation 18 constraint to enforce proportional self-consumption indices.",
+        "Else if RULE == 'MaxMin':",
+        "    Sort houses by increasing total demand.",
+        "    Apply Equations 20 and 21 sequentially to bound the aggregate PV assigned to each house."
+      ],
+      "predecessors": [
+        "Step_2_Optimization"
+      ]
+    },
+    {
+      "id": "Step_4_Evaluate_Objective",
+      "name": "Evaluate Total Operational Costs",
+      "inputs": [
+        "yj,t",
+        "ij,t",
+        "gj,t",
+        "Bt",
+        "beta",
+        "mu",
+        "delta"
+      ],
+      "outputs": [
+        "Total_Cost"
+      ],
+      "equation_refs": [
+        "Eq_1"
+      ],
+      "pseudocode": [
+        "Compute Total_Cost = delta * sum(mu * yj,t + Bt * ij,t - beta * gj,t for j in J for t in T)."
+      ],
+      "predecessors": [
+        "Step_3_Apply_Fairness"
+      ]
+    }
+  ],
+  "code_generation_plan": {
+    "input_mapping": [
+      {
+        "paper_symbol": "Dj,t",
+        "canonical_column": "load",
+        "transformation": "Pivot the input DataFrame: index='Timestamp', columns='member_id', values='load' to get a matrix of demands D[j,t]."
+      },
+      {
+        "paper_symbol": "CPV_t",
+        "canonical_column": "generation",
+        "transformation": "Group by 'Timestamp' and take the mean of 'generation' to obtain a community-level vector of PV generation."
+      }
+    ],
+    "tariff_mapping": [
+      {
+        "paper_parameter": "Bt",
+        "tariff_key": "ToU",
+        "transformation": "Map ToU electricity buying tariff to each timestamp in the planning horizon based on the hour."
+      },
+      {
+        "paper_parameter": "beta",
+        "tariff_key": "FiT",
+        "transformation": "Map FiT selling tariff to each timestamp in the planning horizon based on the hour (or treat as constant if a single value is provided)."
+      }
+    ],
+    "parameter_initialization": [
+      {
+        "parameter_name": "delta",
+        "default_value": 0.25,
+        "expression": "parameters.get('delta', 0.25)"
+      },
+      {
+        "parameter_name": "mu",
+        "default_value": 0.0,
+        "expression": "parameters.get('mu', 0.0)"
+      },
+      {
+        "parameter_name": "ec",
+        "default_value": 0.95,
+        "expression": "parameters.get('ec', 0.95)"
+      },
+      {
+        "parameter_name": "ed",
+        "default_value": 0.95,
+        "expression": "parameters.get('ed', 0.95)"
+      },
+      {
+        "parameter_name": "Cs",
+        "default_value": 10.5,
+        "expression": "parameters.get('Cs', 10.5)"
+      },
+      {
+        "parameter_name": "Smin",
+        "default_value": 0.0,
+        "expression": "parameters.get('Smin', 0.0)"
+      },
+      {
+        "parameter_name": "F_charge",
+        "default_value": 5.0,
+        "expression": "parameters.get('F_charge', 5.0)"
+      },
+      {
+        "parameter_name": "F_discharge",
+        "default_value": 5.0,
+        "expression": "parameters.get('F_discharge', 5.0)"
+      },
+      {
+        "parameter_name": "s0",
+        "default_value": 5.25,
+        "expression": "parameters.get('s0', 5.25)"
+      }
+    ],
+    "execution_order": [
+      "Process inputs: Group and pivot data to construct D[j,t] and CPV[t]",
+      "Calculate aggregate demands D_j for each house j",
+      "Initialize standard LP variables using an optimization library (e.g. pulp or pyomo)",
+      "Set up objective function and shared battery/grid equations",
+      "Apply selected fairness rules (Proportional, MaxMin, or None)",
+      "Solve the linear programming model",
+      "Extract results: pj,t, yj,t, ij,t, zj,t, gj,t, st, and calculate Total_Cost",
+      "Compute auxiliary metrics: P_j, D_j, lambda_val"
+    ],
+    "pseudocode": [
+      "Step 1: Extract unique member IDs as set J and sorted unique timestamps as set T. Let T_len = len(T).",
+      "Step 2: Precompute D_j[j] = sum(D[j,t] for t in T) for all j in J (Eq_D_j).",
+      "Step 3: Define a continuous linear programming model 'prob' with the goal of Minimization.",
+      "Step 4: Define decision variables: p[j,t], y[j,t], i[j,t], z[j,t], g[j,t] >= 0 for all j in J, t in T.",
+      "Step 5: Define state of charge variables s[t] for all t in T, bounded by Smin <= s[t] <= Cs (Eq_2).",
+      "Step 6: Define aggregate helper variables P[j] >= 0 for all j in J, with constraint P[j] == sum(p[j,t] for t in T) (Eq_P_j).",
+      "Step 7: Add objective function: Minimize delta * sum(mu * y[j,t] + B[t] * i[j,t] - beta[t] * g[j,t] for j in J for t in T) (Eq_1).",
+      "Step 8: Add state of charge dynamics (Eq_4): For each t in T (indexed 1 to T_len): if t == 1: s[t] == s0 + ec * sum(z[j,t] for j in J) - ed * sum(y[j,t] for j in J). else: s[t] == s[t-1] + ec * sum(z[j,t] for j in J) - ed * sum(y[j,t] for j in J).",
+      "Step 9: Add boundary SOC constraint (Eq_5): s[T_last] == s0.",
+      "Step 10: Add battery rate constraints (Eq_6 & Eq_7): For each t in T: sum(y[j,t] for j in J) <= F_discharge * delta and sum(z[j,t] for j in J) <= F_charge * delta.",
+      "Step 11: Add PV allocation constraint (Eq_3): For each t in T: sum(p[j,t] for j in J) == CPV[t].",
+      "Step 12: Add nodal demand balance constraint (Eq_8): For each j in J, t in T: D[j,t] == p[j,t] + y[j,t] + i[j,t] - z[j,t] - g[j,t].",
+      "Step 13: Handle fairness rules based on the 'RULE' parameter:\nIf RULE == 'Proportional':\n  Define a continuous decision variable lambda_val >= 0.\n  For each j in J, add constraint: P[j] == lambda_val * D_j[j] (Eq_18).\nElse if RULE == 'MaxMin':\n  Sort set J in increasing order of aggregate demand D_j to get J_sorted.\n  For each index idx, house j in enumerate(J_sorted):\n    Add constraint: P[j] <= D_j[j] (Eq_20).\n    Add constraint: P[j] <= (sum(CPV[t] for t in T) - sum(P[k] for k in J_sorted[:idx])) / (len(J) - idx) (Eq_21).",
+      "Step 14: Solve the LP model using an available solver.",
+      "Step 15: Retrieve values for p_val[j,t], y_val[j,t], i_val[j,t], z_val[j,t], g_val[j,t], s_val[t], P_val[j].",
+      "Step 16: Compute metrics: lambda_val_est = mean(P_val[j] / D_j[j] for j in J).",
+      "Step 17: Return a dictionary containing the extracted variables and 'Total_Cost'."
+    ],
+    "result_dict_keys": [
+      "Total_Cost",
+      "pj,t",
+      "yj,t",
+      "ij,t",
+      "zj,t",
+      "gj,t",
+      "st",
+      "P_j",
+      "D_j",
+      "lambda_val"
+    ],
+    "validation_checks": [
+      "Check that input DataFrame contains columns 'load', 'generation', 'member_id', 'Timestamp'.",
+      "Verify that CPV_t and D_jt are non-negative for all timesteps.",
+      "Ensure tariff series Bt and beta are aligned chronologically with T.",
+      "Confirm that battery capacity parameters Cs >= Smin >= 0.",
+      "Validate that charging and discharging efficiencies ec and ed are within (0, 1]."
+    ]
+  }
+}

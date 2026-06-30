@@ -1,0 +1,2770 @@
+{
+  "source_pdf": "output\\8bc3f22aa6aecff4_EMA\\8bc3f22aa6aecff4_EMA.pdf",
+  "bm_name": "Value share",
+  "name": "Value share",
+  "description": "An agent-based energy community model integrating household electricity consumption, renewable energy sources, centralized heat pumps for heating, and electric vehicle charging infrastructure. The model distributes community-level savings using a Value Share mechanism and evaluates optimal operational scenarios from Scenario A (basic communal generation) to Scenario F (local energy market trading) using a multi-criteria objective function.",
+  "objective": "Maximize the multi-criteria strategy function of the energy community by optimizing cost savings, self-consumption, self-sustainability, fairness of value share distribution, CO2 emission reductions, and payback period across different operational scenarios.",
+  "symbols": [
+    {
+      "name": "Timestamp",
+      "category": "input",
+      "type": "datetime",
+      "definition": "Date and time of the measurement interval",
+      "unit": "YYYY-MM-DD hh:mm:ss",
+      "depends_on": [],
+      "dataset_column": "Timestamp",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "member_id",
+      "category": "input",
+      "type": "string",
+      "definition": "Unique identifier of the community member",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "member_id",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "member_type",
+      "category": "input",
+      "type": "string",
+      "definition": "Type of the community member (e.g. residential)",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "member_type",
+      "source_ref": "Section 3"
+    },
+    {
+      "name": "CP_i_t",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Individual baseload electricity consumption of member i at timestep t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "load",
+      "source_ref": "Equation 12"
+    },
+    {
+      "name": "G_i_t",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Individual solar generation of member i at timestep t",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "generation",
+      "source_ref": "Equations 10-11"
+    },
+    {
+      "name": "ToU_t",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Time-of-Use electricity purchase tariff rate at timestep t",
+      "unit": "lei/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "FiT_t",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Feed-in Tariff rate for surplus electricity injected into the grid at timestep t",
+      "unit": "lei/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "Gas_Price",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Unit price of natural gas for conventional heating",
+      "unit": "lei/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "Petrol_Price",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Unit price of petrol/gasoline for conventional transport",
+      "unit": "lei/L",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "UC_PV",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Unit capital cost of installing solar PV systems",
+      "unit": "lei/kWp",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "UC_HP",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Total procurement and installation cost of the community heat pump",
+      "unit": "lei",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "UC_EVCS",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Total installation cost of communal Level 3 EV fast charging stations",
+      "unit": "lei",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "Y_spec",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Specific PV system energy yield per year in the given location",
+      "unit": "kWh/kWp/year",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "name": "m",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Total number of members in the energy community",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.2"
+    },
+    {
+      "name": "V_i",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Average heated volume of a single member housing unit",
+      "unit": "m3",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "k_ins",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Thermal insulation coefficient of building envelopes",
+      "unit": "W/m3/C",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "T_in",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Standard target indoor comfort temperature",
+      "unit": "C",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "T_out_t",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Outdoor ambient temperature time series at timestep t",
+      "unit": "C",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 4.1"
+    },
+    {
+      "name": "COP",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Coefficient of Performance of heat pump systems",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "fuel_cons",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Average fuel consumption rate of conventional vehicles (epsilon)",
+      "unit": "L/100km",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "km_365",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Average total annual driving distance per household member",
+      "unit": "km",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "EC_EV",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Average electricity consumption rate of an electric vehicle",
+      "unit": "kWh/100km",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "eta_EV",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Efficiency of electric vehicle charging systems",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "EF_el",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "CO2 emission factor of electricity imported from the national grid",
+      "unit": "kg CO2/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "EF_H",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "CO2 emission factor of natural gas used for conventional heating",
+      "unit": "kg CO2/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "EF_T",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "CO2 emission factor of petrol/gasoline fuel",
+      "unit": "kg CO2/L",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "I_HP",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Scenario selector flag indicating activation of centralized heating electrification (Scenario C/E/F = 1, otherwise 0)",
+      "unit": "binary",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.2"
+    },
+    {
+      "name": "I_EV",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Scenario selector flag indicating activation of EV transportation electrification (Scenario D/E/F = 1, otherwise 0)",
+      "unit": "binary",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.3"
+    },
+    {
+      "name": "I_LEM",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Scenario selector flag indicating local energy market trading activation (Scenario F = 1, otherwise 0)",
+      "unit": "binary",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.4"
+    },
+    {
+      "name": "P_LEM_t",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Local energy market clearing price at timestep t",
+      "unit": "lei/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 21"
+    },
+    {
+      "name": "omega_1",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight of Fairness Index in the multi-criteria strategy evaluation",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "omega_2",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight of Cost Savings in the multi-criteria strategy evaluation",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "omega_3",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight of Self-Sustainability Index in the multi-criteria strategy evaluation",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "omega_4",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight of Self-Consumption Index in the multi-criteria strategy evaluation",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "omega_5",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight of Grid Dependence Index in the multi-criteria strategy evaluation",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "omega_6",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight of inverse payback period in the multi-criteria strategy evaluation",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "omega_7",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weight of CO2 Reduction Index in the multi-criteria strategy evaluation",
+      "unit": "dimensionless",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Table 2"
+    },
+    {
+      "name": "C_EC_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Total electricity consumption of shared/communal assets in the community at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "CP_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 4.1"
+    },
+    {
+      "name": "G_EC_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Electricity generation profile of shared/communal PV installations at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "P_PV",
+        "G_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "name": "C_sh_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Equally shared communal consumption allocated to each member at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "C_EC_t",
+        "m"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 8"
+    },
+    {
+      "name": "G_sh_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Equally shared communal generation allocated to each member at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "G_EC_t",
+        "m"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 9"
+    },
+    {
+      "name": "Q_H_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Thermal heating demand of member i at timestep t calculated based on building thermal dynamics",
+      "unit": "kWh",
+      "depends_on": [
+        "V_i",
+        "T_in",
+        "T_out_t",
+        "k_ins"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 19"
+    },
+    {
+      "name": "CH_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Electricity load required for heating of member i at timestep t (non-zero only if I_HP is enabled)",
+      "unit": "kWh",
+      "depends_on": [
+        "Q_H_i_t",
+        "COP",
+        "I_HP"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 12"
+    },
+    {
+      "name": "CEV_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Electricity load required for EV charging of member i at timestep t (non-zero only if I_EV is enabled)",
+      "unit": "kWh",
+      "depends_on": [
+        "EC_EV",
+        "eta_EV",
+        "km_365",
+        "I_EV"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 20"
+    },
+    {
+      "name": "C_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Total combined electricity load of member i at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "CP_i_t",
+        "CH_i_t",
+        "CEV_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 12"
+    },
+    {
+      "name": "D_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Net electricity import demand of member i from the community/grid at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "C_i_t",
+        "C_sh_t",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 10"
+    },
+    {
+      "name": "S_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Net surplus electricity generated by member i at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "C_i_t",
+        "C_sh_t",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 11"
+    },
+    {
+      "name": "D_EC_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Aggregated net community electricity deficit imported from the macro-grid at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 14"
+    },
+    {
+      "name": "S_EC_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Aggregated net community surplus electricity injected into the macro-grid at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 15"
+    },
+    {
+      "name": "QB_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Quantity of electricity deficit of member i cleared/bought on the local energy market at timestep t (non-zero only if I_LEM is enabled)",
+      "unit": "kWh",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t",
+        "I_LEM"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 21"
+    },
+    {
+      "name": "QS_i_t",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Quantity of electricity surplus of member i cleared/sold on the local energy market at timestep t (non-zero only if I_LEM is enabled)",
+      "unit": "kWh",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t",
+        "I_LEM"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 21"
+    },
+    {
+      "name": "Cost_H_i",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Annual conventional fossil-fuel heating costs per member (zeroed out if electric heating is active)",
+      "unit": "lei",
+      "depends_on": [
+        "Q_H_i_t",
+        "Gas_Price",
+        "I_HP"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "name": "Cost_T_i",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Annual conventional petrol vehicle transportation costs per member (zeroed out if electric transport is active)",
+      "unit": "lei",
+      "depends_on": [
+        "km_365",
+        "fuel_cons",
+        "Petrol_Price",
+        "I_EV"
+      ],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "name": "Pay_EC_0",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Total baseline costs of the community prior to the energy community transformation",
+      "unit": "lei",
+      "depends_on": [
+        "C_EC_t",
+        "CP_i_t",
+        "ToU_t",
+        "Cost_H_i",
+        "Cost_T_i"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 1"
+    },
+    {
+      "name": "Pay_EC",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Post-intervention aggregated cost of the energy community",
+      "unit": "lei",
+      "depends_on": [
+        "D_EC_t",
+        "ToU_t",
+        "S_EC_t",
+        "FiT_t",
+        "I_HP",
+        "I_EV",
+        "Cost_H_i",
+        "Cost_T_i"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 16"
+    },
+    {
+      "name": "Pay_i",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Individual net energy bill of member i before receiving value share distributions",
+      "unit": "lei",
+      "depends_on": [
+        "D_i_t",
+        "ToU_t",
+        "S_i_t",
+        "FiT_t",
+        "QB_i_t",
+        "QS_i_t",
+        "P_LEM_t",
+        "I_LEM"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 13"
+    },
+    {
+      "name": "VS_EC",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Aggregate financial value surplus generated within the community as a benefit of internal resource sharing",
+      "unit": "lei",
+      "depends_on": [
+        "Pay_i",
+        "Pay_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 17"
+    },
+    {
+      "name": "VS_i",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Value Share benefit distributed back to member i based on individual and communal participation dynamics",
+      "unit": "lei",
+      "depends_on": [
+        "VS_EC",
+        "m"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 18"
+    },
+    {
+      "name": "Pay_i_final",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Final effective bill paid by member i after receiving Value Share allocations",
+      "unit": "lei",
+      "depends_on": [
+        "Pay_i",
+        "VS_i"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 18"
+    },
+    {
+      "name": "P_PV",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Required sizing capacity of community photovoltaic installations based on load expectations",
+      "unit": "kWp",
+      "depends_on": [
+        "C_EC_t",
+        "Y_spec"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 6"
+    },
+    {
+      "name": "Cost_EC",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Total community-funded capital expenditure (CAPEX) investment cost",
+      "unit": "lei",
+      "depends_on": [
+        "P_PV",
+        "UC_PV",
+        "UC_HP",
+        "UC_EVCS",
+        "I_HP",
+        "I_EV"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 5"
+    },
+    {
+      "name": "PBP_EC",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Payback period of the community energy system investment",
+      "unit": "years",
+      "depends_on": [
+        "Cost_EC",
+        "Pay_EC_0",
+        "Pay_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 7"
+    },
+    {
+      "name": "Gu_EC_t",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Amount of generated energy instantly used internally by community load at timestep t",
+      "unit": "kWh",
+      "depends_on": [
+        "C_EC_t",
+        "C_i_t",
+        "G_EC_t",
+        "G_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 25"
+    },
+    {
+      "name": "CO2_EC_0",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Total baseline CO2 greenhouse gas emissions of the community prior to transformation",
+      "unit": "kg CO2",
+      "depends_on": [
+        "C_EC_t",
+        "CP_i_t",
+        "Q_H_i_t",
+        "km_365",
+        "fuel_cons",
+        "EF_el",
+        "EF_H",
+        "EF_T",
+        "m"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 28"
+    },
+    {
+      "name": "delta_CO2_H",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Avoided CO2 emissions due to gas heating electrification with highly efficient centralized heat pumps",
+      "unit": "kg CO2",
+      "depends_on": [
+        "CH_i_t",
+        "EF_H",
+        "EF_el",
+        "COP",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "delta_CO2_EV",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Avoided CO2 emissions from substituting internal combustion engine cars with electric vehicles",
+      "unit": "kg CO2",
+      "depends_on": [
+        "km_365",
+        "fuel_cons",
+        "EF_T",
+        "CEV_i_t",
+        "EF_el",
+        "m"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 31"
+    },
+    {
+      "name": "delta_CO2",
+      "category": "derived",
+      "type": "scalar",
+      "definition": "Total avoided aggregate greenhouse gas emissions of the energy community",
+      "unit": "kg CO2",
+      "depends_on": [
+        "G_EC_t",
+        "G_i_t",
+        "CEV_i_t",
+        "CH_i_t",
+        "EF_el",
+        "delta_CO2_H",
+        "delta_CO2_EV"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "CS_EC",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Percentage cost savings achieved by the community after forming the EC",
+      "unit": "%",
+      "depends_on": [
+        "Pay_EC_0",
+        "Pay_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 22"
+    },
+    {
+      "name": "GDI_EC",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Grid Dependence Index measuring proportion of community demand satisfied from external grid imports",
+      "unit": "%",
+      "depends_on": [
+        "D_EC_t",
+        "C_EC_t",
+        "C_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 23"
+    },
+    {
+      "name": "SCI_EC",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Self-Consumption Index quantifying fraction of local RES generation used locally within the community",
+      "unit": "%",
+      "depends_on": [
+        "Gu_EC_t",
+        "G_EC_t",
+        "G_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 24"
+    },
+    {
+      "name": "SSI_EC",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Self-Sustainability Index measuring fraction of total community energy usage generated by local RES",
+      "unit": "%",
+      "depends_on": [
+        "Gu_EC_t",
+        "C_EC_t",
+        "C_i_t"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 26"
+    },
+    {
+      "name": "FI_EC",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Fairness Index evaluating equity of distributed value benefits among individual prosumers and consumers",
+      "unit": "%",
+      "depends_on": [
+        "VS_i",
+        "G_i_t",
+        "G_sh_t",
+        "m"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 27"
+    },
+    {
+      "name": "CO2_red_index",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Normalized percentage emission reduction achieved across energy, heating and transport sectors",
+      "unit": "%",
+      "depends_on": [
+        "delta_CO2",
+        "CO2_EC_0"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 32"
+    },
+    {
+      "name": "f_EC",
+      "category": "output",
+      "type": "scalar",
+      "definition": "Multi-criteria objective performance rating of the selected energy community operational scenario",
+      "unit": "score points",
+      "depends_on": [
+        "omega_1",
+        "omega_2",
+        "omega_3",
+        "omega_4",
+        "omega_5",
+        "omega_6",
+        "omega_7",
+        "FI_EC",
+        "CS_EC",
+        "SSI_EC",
+        "SCI_EC",
+        "GDI_EC",
+        "PBP_EC",
+        "CO2_red_index"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 33"
+    },
+    {
+      "name": "I_ind_cov",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Scenario selector flag indicating whether individual household consumption is covered by the community PV system (1 for Scenarios B/C/D/E/F, 0 for Scenario A)",
+      "unit": "binary",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Section 3.1.2"
+    }
+  ],
+  "inputs": [
+    "CP_i_t",
+    "G_i_t",
+    "Timestamp",
+    "member_id",
+    "member_type"
+  ],
+  "parameters": [
+    {
+      "name": "ToU_t",
+      "definition": "Time-of-Use electricity purchase tariff rate at timestep t",
+      "value": null,
+      "unit": "lei/kWh",
+      "source_ref": "Table 2",
+      "value_source": "ec_tariff",
+      "tariff_key": "ToU"
+    },
+    {
+      "name": "FiT_t",
+      "definition": "Feed-in Tariff rate for surplus electricity injected into the grid at timestep t",
+      "value": null,
+      "unit": "lei/kWh",
+      "source_ref": "Table 2",
+      "value_source": "ec_tariff",
+      "tariff_key": "FiT"
+    },
+    {
+      "name": "Gas_Price",
+      "definition": "Unit price of natural gas for conventional heating",
+      "value": 0.31,
+      "unit": "lei/kWh",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "Petrol_Price",
+      "definition": "Unit price of petrol/gasoline for conventional transport",
+      "value": 7.0,
+      "unit": "lei/L",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "UC_PV",
+      "definition": "Unit capital cost of installing solar PV systems",
+      "value": 3500.0,
+      "unit": "lei/kWp",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "UC_HP",
+      "definition": "Total procurement and installation cost of the community heat pump",
+      "value": 1710000.0,
+      "unit": "lei",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "UC_EVCS",
+      "definition": "Total installation cost of communal Level 3 EV fast charging stations",
+      "value": 100000.0,
+      "unit": "lei",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "Y_spec",
+      "definition": "Specific PV system energy yield per year in the given location",
+      "value": 1200.0,
+      "unit": "kWh/kWp/year",
+      "source_ref": "Section 3.1.1",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "m",
+      "definition": "Total number of members in the energy community",
+      "value": 114,
+      "unit": "dimensionless",
+      "source_ref": "Section 3.1.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "V_i",
+      "definition": "Average heated volume of a single member housing unit",
+      "value": 175.0,
+      "unit": "m3",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "k_ins",
+      "definition": "Thermal insulation coefficient of building envelopes",
+      "value": 0.2,
+      "unit": "W/m3/C",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "T_in",
+      "definition": "Standard target indoor comfort temperature",
+      "value": 24.0,
+      "unit": "C",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "COP",
+      "definition": "Coefficient of Performance of heat pump systems",
+      "value": 3.2,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "fuel_cons",
+      "definition": "Average fuel consumption rate of conventional vehicles (epsilon)",
+      "value": 8.0,
+      "unit": "L/100km",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "km_365",
+      "definition": "Average total annual driving distance per household member",
+      "value": 10000.0,
+      "unit": "km",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "EC_EV",
+      "definition": "Average electricity consumption rate of an electric vehicle",
+      "value": 15.0,
+      "unit": "kWh/100km",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "eta_EV",
+      "definition": "Efficiency of electric vehicle charging systems",
+      "value": 0.9,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "EF_el",
+      "definition": "CO2 emission factor of electricity imported from the national grid",
+      "value": 0.25,
+      "unit": "kg CO2/kWh",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "EF_H",
+      "definition": "CO2 emission factor of natural gas used for conventional heating",
+      "value": 0.181,
+      "unit": "kg CO2/kWh",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "EF_T",
+      "definition": "CO2 emission factor of petrol/gasoline fuel",
+      "value": 2.31,
+      "unit": "kg CO2/L",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "I_HP",
+      "definition": "Scenario selector flag indicating activation of centralized heating electrification (Scenario C/E/F = 1, otherwise 0)",
+      "value": 1,
+      "unit": "binary",
+      "source_ref": "Section 3.1.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "I_EV",
+      "definition": "Scenario selector flag indicating activation of EV transportation electrification (Scenario D/E/F = 1, otherwise 0)",
+      "value": 1,
+      "unit": "binary",
+      "source_ref": "Section 3.1.3",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "I_LEM",
+      "definition": "Scenario selector flag indicating local energy market trading activation (Scenario F = 1, otherwise 0)",
+      "value": 0,
+      "unit": "binary",
+      "source_ref": "Section 3.1.4",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_1",
+      "definition": "Weight of Fairness Index in the multi-criteria strategy evaluation",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_2",
+      "definition": "Weight of Cost Savings in the multi-criteria strategy evaluation",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_3",
+      "definition": "Weight of Self-Sustainability Index in the multi-criteria strategy evaluation",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_4",
+      "definition": "Weight of Self-Consumption Index in the multi-criteria strategy evaluation",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_5",
+      "definition": "Weight of Grid Dependence Index in the multi-criteria strategy evaluation",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_6",
+      "definition": "Weight of inverse payback period in the multi-criteria strategy evaluation",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "omega_7",
+      "definition": "Weight of CO2 Reduction Index in the multi-criteria strategy evaluation",
+      "value": 1.0,
+      "unit": "dimensionless",
+      "source_ref": "Table 2",
+      "value_source": "paper",
+      "tariff_key": ""
+    },
+    {
+      "name": "I_ind_cov",
+      "definition": "Scenario selector flag indicating whether individual household consumption is covered by the community PV system (1 for Scenarios B/C/D/E/F, 0 for Scenario A)",
+      "value": 1,
+      "unit": "binary",
+      "source_ref": "Section 3.1.2",
+      "value_source": "paper",
+      "tariff_key": ""
+    }
+  ],
+  "derived_variables": [
+    {
+      "name": "C_EC_t",
+      "definition": "Communal baseload consumption calculated as a fraction of total community baseload (3%)",
+      "depends_on": [
+        "CP_i_t"
+      ],
+      "source_ref": "Section 4.1"
+    },
+    {
+      "name": "P_PV",
+      "definition": "Photovoltaic system peak sizing derived from community baseload expectations and location yield",
+      "depends_on": [
+        "C_EC_t",
+        "Y_spec"
+      ],
+      "source_ref": "Equation 6"
+    },
+    {
+      "name": "G_EC_t",
+      "definition": "Communal solar generation profile generated by scaling normal individual solar profiles to PV peak capacity",
+      "depends_on": [
+        "P_PV",
+        "G_i_t"
+      ],
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "name": "C_sh_t",
+      "definition": "Allocation of shared consumption profile per community member",
+      "depends_on": [
+        "C_EC_t",
+        "m"
+      ],
+      "source_ref": "Equation 8"
+    },
+    {
+      "name": "G_sh_t",
+      "definition": "Allocation of shared generation profile per community member",
+      "depends_on": [
+        "G_EC_t",
+        "m"
+      ],
+      "source_ref": "Equation 9"
+    },
+    {
+      "name": "Q_H_i_t",
+      "definition": "Standard heat requirement calculation based on volume, building insulation, comfort internal, and external temperatures",
+      "depends_on": [
+        "V_i",
+        "T_in",
+        "T_out_t",
+        "k_ins"
+      ],
+      "source_ref": "Equation 19"
+    },
+    {
+      "name": "CH_i_t",
+      "definition": "Electric load from electrified heating using heat pump COP if I_HP is enabled",
+      "depends_on": [
+        "Q_H_i_t",
+        "COP",
+        "I_HP"
+      ],
+      "source_ref": "Equation 12"
+    },
+    {
+      "name": "CEV_i_t",
+      "definition": "EV charging power demand profile across timeteps for active EV transition",
+      "depends_on": [
+        "EC_EV",
+        "eta_EV",
+        "km_365",
+        "I_EV"
+      ],
+      "source_ref": "Equation 20"
+    },
+    {
+      "name": "C_i_t",
+      "definition": "Aggregated individual demand containing domestic load, electric heating and EV charging loads",
+      "depends_on": [
+        "CP_i_t",
+        "CH_i_t",
+        "CEV_i_t"
+      ],
+      "source_ref": "Equation 12"
+    },
+    {
+      "name": "D_i_t",
+      "definition": "Individual load importing behavior from the community local balance",
+      "depends_on": [
+        "C_i_t",
+        "C_sh_t",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "source_ref": "Equation 10"
+    },
+    {
+      "name": "S_i_t",
+      "definition": "Individual generation excess profile in reference to total domestic load",
+      "depends_on": [
+        "C_i_t",
+        "C_sh_t",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "source_ref": "Equation 11"
+    },
+    {
+      "name": "D_EC_t",
+      "definition": "Net community demand import curve in collective self-consumption mode",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t"
+      ],
+      "source_ref": "Equation 14"
+    },
+    {
+      "name": "S_EC_t",
+      "definition": "Net community export generation injection curve in collective self-consumption mode",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t"
+      ],
+      "source_ref": "Equation 15"
+    },
+    {
+      "name": "QB_i_t",
+      "definition": "Cleared bought quantities under LEM dynamic pricing",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t",
+        "I_LEM"
+      ],
+      "source_ref": "Equation 21"
+    },
+    {
+      "name": "QS_i_t",
+      "definition": "Cleared sold quantities under LEM dynamic pricing",
+      "depends_on": [
+        "D_i_t",
+        "S_i_t",
+        "I_LEM"
+      ],
+      "source_ref": "Equation 21"
+    },
+    {
+      "name": "Cost_H_i",
+      "definition": "Conventional fossil fuel heating expenditure for non-electrified baseline scenario state",
+      "depends_on": [
+        "Q_H_i_t",
+        "Gas_Price",
+        "I_HP"
+      ],
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "name": "Cost_T_i",
+      "definition": "Conventional internal combustion transportation expense",
+      "depends_on": [
+        "km_365",
+        "fuel_cons",
+        "Petrol_Price",
+        "I_EV"
+      ],
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "name": "Pay_EC_0",
+      "definition": "Calculated total financial baseline reference costs prior to any community measures",
+      "depends_on": [
+        "C_EC_t",
+        "CP_i_t",
+        "ToU_t",
+        "Cost_H_i",
+        "Cost_T_i"
+      ],
+      "source_ref": "Equation 1"
+    },
+    {
+      "name": "Pay_EC",
+      "definition": "Consolidated energy system community cost after deployment of renewable assets and operations",
+      "depends_on": [
+        "D_EC_t",
+        "ToU_t",
+        "S_EC_t",
+        "FiT_t",
+        "I_HP",
+        "I_EV",
+        "Cost_H_i",
+        "Cost_T_i"
+      ],
+      "source_ref": "Equation 16"
+    },
+    {
+      "name": "Pay_i",
+      "definition": "Prosumer/Consumer individual costs before redistribution of value share benefits",
+      "depends_on": [
+        "D_i_t",
+        "ToU_t",
+        "S_i_t",
+        "FiT_t",
+        "QB_i_t",
+        "QS_i_t",
+        "P_LEM_t",
+        "I_LEM"
+      ],
+      "source_ref": "Equation 13"
+    },
+    {
+      "name": "VS_EC",
+      "definition": "Community residual cash value that represents internal financial savings of virtual net-metering structures",
+      "depends_on": [
+        "Pay_i",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 17"
+    },
+    {
+      "name": "VS_i",
+      "definition": "Allocation of the communal value share benefit evenly across individual players",
+      "depends_on": [
+        "VS_EC",
+        "m"
+      ],
+      "source_ref": "Equation 18"
+    },
+    {
+      "name": "Pay_i_final",
+      "definition": "Calculated actual individual payment after applying Value Share allocation rebates",
+      "depends_on": [
+        "Pay_i",
+        "VS_i"
+      ],
+      "source_ref": "Equation 18"
+    },
+    {
+      "name": "Cost_EC",
+      "definition": "Aggregated upfront asset procurement capital cost",
+      "depends_on": [
+        "P_PV",
+        "UC_PV",
+        "UC_HP",
+        "UC_EVCS",
+        "I_HP",
+        "I_EV"
+      ],
+      "source_ref": "Equation 5"
+    },
+    {
+      "name": "PBP_EC",
+      "definition": "Financial period required to recover community CAPEX with internal operational cost reduction savings",
+      "depends_on": [
+        "Cost_EC",
+        "Pay_EC_0",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 7"
+    },
+    {
+      "name": "Gu_EC_t",
+      "definition": "Instantaneous internal usage profile of generated solar electricity within community system boundaries",
+      "depends_on": [
+        "C_EC_t",
+        "C_i_t",
+        "G_EC_t",
+        "G_i_t"
+      ],
+      "source_ref": "Equation 25"
+    },
+    {
+      "name": "CO2_EC_0",
+      "definition": "Annual baseline CO2 emissions encompassing heating (gas), transport (petrol) and standard electricity grid inputs",
+      "depends_on": [
+        "C_EC_t",
+        "CP_i_t",
+        "Q_H_i_t",
+        "km_365",
+        "fuel_cons",
+        "EF_el",
+        "EF_H",
+        "EF_T",
+        "m"
+      ],
+      "source_ref": "Equation 28"
+    },
+    {
+      "name": "delta_CO2_H",
+      "definition": "Abated carbon emissions due to fossil fuel substitution for thermal heating using local renewable energy",
+      "depends_on": [
+        "CH_i_t",
+        "EF_H",
+        "EF_el",
+        "COP",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "delta_CO2_EV",
+      "definition": "Abated carbon emissions through substitute electric cars running on green local PV generated power",
+      "depends_on": [
+        "km_365",
+        "fuel_cons",
+        "EF_T",
+        "CEV_i_t",
+        "EF_el",
+        "m"
+      ],
+      "source_ref": "Equation 31"
+    },
+    {
+      "name": "delta_CO2",
+      "definition": "Integrated sectoral carbon greenhouse gas reductions",
+      "depends_on": [
+        "G_EC_t",
+        "G_i_t",
+        "CEV_i_t",
+        "CH_i_t",
+        "EF_el",
+        "delta_CO2_H",
+        "delta_CO2_EV"
+      ],
+      "source_ref": "Equation 29"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "CS_EC",
+      "definition": "Cost Savings percentage over baseline state",
+      "unit": "%",
+      "depends_on": [
+        "Pay_EC_0",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 22"
+    },
+    {
+      "name": "GDI_EC",
+      "definition": "Community index of grid supply reliance",
+      "unit": "%",
+      "depends_on": [
+        "D_EC_t",
+        "C_EC_t",
+        "C_i_t"
+      ],
+      "source_ref": "Equation 23"
+    },
+    {
+      "name": "SCI_EC",
+      "definition": "Proportion of local solar resource consumed locally",
+      "unit": "%",
+      "depends_on": [
+        "Gu_EC_t",
+        "G_EC_t",
+        "G_i_t"
+      ],
+      "source_ref": "Equation 24"
+    },
+    {
+      "name": "SSI_EC",
+      "definition": "Index representing total energy independence based on generation capacity",
+      "unit": "%",
+      "depends_on": [
+        "Gu_EC_t",
+        "C_EC_t",
+        "C_i_t"
+      ],
+      "source_ref": "Equation 26"
+    },
+    {
+      "name": "FI_EC",
+      "definition": "Jain's index of fairness evaluating distribution uniformity of value share benefits",
+      "unit": "%",
+      "depends_on": [
+        "VS_i",
+        "G_i_t",
+        "G_sh_t",
+        "m"
+      ],
+      "source_ref": "Equation 27"
+    },
+    {
+      "name": "CO2_red_index",
+      "definition": "Total relative community carbon mitigation metric",
+      "unit": "%",
+      "depends_on": [
+        "delta_CO2",
+        "CO2_EC_0"
+      ],
+      "source_ref": "Equation 32"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "f_EC",
+      "category": "output",
+      "type": "scalar",
+      "definition": "Multi-criteria objective performance rating of the selected energy community operational scenario",
+      "unit": "score points",
+      "depends_on": [
+        "omega_1",
+        "omega_2",
+        "omega_3",
+        "omega_4",
+        "omega_5",
+        "omega_6",
+        "omega_7",
+        "FI_EC",
+        "CS_EC",
+        "SSI_EC",
+        "SCI_EC",
+        "GDI_EC",
+        "PBP_EC",
+        "CO2_red_index"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 33"
+    }
+  ],
+  "equations": [
+    {
+      "id": "Eq1",
+      "expression": "Pay_EC_0 = sum_t((C_EC_t + sum_i(CP_i_t)) * ToU_t) + sum_i(Cost_H_i + Cost_T_i)",
+      "output_variable": "Pay_EC_0",
+      "dependencies": [
+        "C_EC_t",
+        "CP_i_t",
+        "ToU_t",
+        "Cost_H_i",
+        "Cost_T_i"
+      ],
+      "source_ref": "Equation 1"
+    },
+    {
+      "id": "Eq2",
+      "expression": "Pay_EC = sum_t(D_EC_t * ToU_t - S_EC_t * FiT_t) + (1 - I_HP) * sum_i(Cost_H_i) + (1 - I_EV) * sum_i(Cost_T_i)",
+      "output_variable": "Pay_EC",
+      "dependencies": [
+        "D_EC_t",
+        "ToU_t",
+        "S_EC_t",
+        "FiT_t",
+        "Cost_H_i",
+        "Cost_T_i",
+        "I_HP",
+        "I_EV"
+      ],
+      "source_ref": "Equation 2 & Equation 16"
+    },
+    {
+      "id": "Eq5",
+      "expression": "Cost_EC = P_PV * UC_PV + I_HP * UC_HP + I_EV * UC_EVCS",
+      "output_variable": "Cost_EC",
+      "dependencies": [
+        "P_PV",
+        "UC_PV",
+        "UC_HP",
+        "UC_EVCS",
+        "I_HP",
+        "I_EV"
+      ],
+      "source_ref": "Equation 5"
+    },
+    {
+      "id": "Eq6",
+      "expression": "P_PV = sum_t(C_EC_t) / Y_spec",
+      "output_variable": "P_PV",
+      "dependencies": [
+        "C_EC_t",
+        "Y_spec"
+      ],
+      "source_ref": "Equation 6"
+    },
+    {
+      "id": "Eq7",
+      "expression": "PBP_EC = Cost_EC / (Pay_EC_0 - Pay_EC)",
+      "output_variable": "PBP_EC",
+      "dependencies": [
+        "Cost_EC",
+        "Pay_EC_0",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 7"
+    },
+    {
+      "id": "Eq8",
+      "expression": "C_sh_t = C_EC_t / m",
+      "output_variable": "C_sh_t",
+      "dependencies": [
+        "C_EC_t",
+        "m"
+      ],
+      "source_ref": "Equation 8"
+    },
+    {
+      "id": "Eq9",
+      "expression": "G_sh_t = G_EC_t / m",
+      "output_variable": "G_sh_t",
+      "dependencies": [
+        "G_EC_t",
+        "m"
+      ],
+      "source_ref": "Equation 9"
+    },
+    {
+      "id": "Eq10",
+      "expression": "D_i_t = max(0, C_i_t + C_sh_t - (G_i_t + G_sh_t))",
+      "output_variable": "D_i_t",
+      "dependencies": [
+        "C_i_t",
+        "C_sh_t",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "source_ref": "Equation 10"
+    },
+    {
+      "id": "Eq11",
+      "expression": "S_i_t = max(0, G_i_t + G_sh_t - (C_i_t + C_sh_t))",
+      "output_variable": "S_i_t",
+      "dependencies": [
+        "C_i_t",
+        "C_sh_t",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "source_ref": "Equation 11"
+    },
+    {
+      "id": "Eq12",
+      "expression": "C_i_t = CP_i_t + CH_i_t + CEV_i_t",
+      "output_variable": "C_i_t",
+      "dependencies": [
+        "CP_i_t",
+        "CH_i_t",
+        "CEV_i_t"
+      ],
+      "source_ref": "Equation 12"
+    },
+    {
+      "id": "Eq13_Pay_i",
+      "expression": "Pay_i = (1 - I_LEM) * sum_t(D_i_t * ToU_t - S_i_t * FiT_t) + I_LEM * sum_t(QB_i_t * P_LEM_t + (D_i_t - QB_i_t) * ToU_t - (QS_i_t * P_LEM_t + (S_i_t - QS_i_t) * FiT_t))",
+      "output_variable": "Pay_i",
+      "dependencies": [
+        "D_i_t",
+        "ToU_t",
+        "S_i_t",
+        "FiT_t",
+        "QB_i_t",
+        "QS_i_t",
+        "P_LEM_t",
+        "I_LEM"
+      ],
+      "source_ref": "Equation 13 & Equation 21"
+    },
+    {
+      "id": "Eq14",
+      "expression": "D_EC_t = max(0, sum_i(D_i_t) - sum_i(S_i_t))",
+      "output_variable": "D_EC_t",
+      "dependencies": [
+        "D_i_t",
+        "S_i_t"
+      ],
+      "source_ref": "Equation 14"
+    },
+    {
+      "id": "Eq15",
+      "expression": "S_EC_t = max(0, sum_i(S_i_t) - sum_i(D_i_t))",
+      "output_variable": "S_EC_t",
+      "dependencies": [
+        "D_i_t",
+        "S_i_t"
+      ],
+      "source_ref": "Equation 15"
+    },
+    {
+      "id": "Eq17",
+      "expression": "VS_EC = sum_i(Pay_i) - Pay_EC",
+      "output_variable": "VS_EC",
+      "dependencies": [
+        "Pay_i",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 17"
+    },
+    {
+      "id": "Eq18_VS_i",
+      "expression": "VS_i = VS_EC / m",
+      "output_variable": "VS_i",
+      "dependencies": [
+        "VS_EC",
+        "m"
+      ],
+      "source_ref": "Equation 18"
+    },
+    {
+      "id": "Eq18_Pay_final",
+      "expression": "Pay_i_final = Pay_i - VS_i",
+      "output_variable": "Pay_i_final",
+      "dependencies": [
+        "Pay_i",
+        "VS_i"
+      ],
+      "source_ref": "Equation 18"
+    },
+    {
+      "id": "Eq19",
+      "expression": "Q_H_i_t = V_i * max(0, T_in - T_out_t) * k_ins",
+      "output_variable": "Q_H_i_t",
+      "dependencies": [
+        "V_i",
+        "T_in",
+        "T_out_t",
+        "k_ins"
+      ],
+      "source_ref": "Equation 19"
+    },
+    {
+      "id": "Eq19_CH_i_t",
+      "expression": "CH_i_t = I_HP * (Q_H_i_t / COP)",
+      "output_variable": "CH_i_t",
+      "dependencies": [
+        "Q_H_i_t",
+        "COP",
+        "I_HP"
+      ],
+      "source_ref": "Equation 19"
+    },
+    {
+      "id": "Eq20_CEV_i_t",
+      "expression": "CEV_i_t = I_EV * ((EC_EV / eta_EV) * (km_365 / 8760) / 100)",
+      "output_variable": "CEV_i_t",
+      "dependencies": [
+        "EC_EV",
+        "eta_EV",
+        "km_365",
+        "I_EV"
+      ],
+      "source_ref": "Equation 20"
+    },
+    {
+      "id": "Eq22",
+      "expression": "CS_EC = ((Pay_EC_0 - Pay_EC) / Pay_EC_0) * 100",
+      "output_variable": "CS_EC",
+      "dependencies": [
+        "Pay_EC_0",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 22"
+    },
+    {
+      "id": "Eq23",
+      "expression": "GDI_EC = (sum_t(D_EC_t) / sum_t(C_EC_t + sum_i(C_i_t))) * 100",
+      "output_variable": "GDI_EC",
+      "dependencies": [
+        "D_EC_t",
+        "C_EC_t",
+        "C_i_t"
+      ],
+      "source_ref": "Equation 23"
+    },
+    {
+      "id": "Eq24",
+      "expression": "SCI_EC = (sum_t(Gu_EC_t) / sum_t(G_EC_t + sum_i(G_i_t))) * 100",
+      "output_variable": "SCI_EC",
+      "dependencies": [
+        "Gu_EC_t",
+        "G_EC_t",
+        "G_i_t"
+      ],
+      "source_ref": "Equation 24"
+    },
+    {
+      "id": "Eq25",
+      "expression": "Gu_EC_t = min(C_EC_t + sum_i(C_i_t), G_EC_t + sum_i(G_i_t))",
+      "output_variable": "Gu_EC_t",
+      "dependencies": [
+        "C_EC_t",
+        "C_i_t",
+        "G_EC_t",
+        "G_i_t"
+      ],
+      "source_ref": "Equation 25"
+    },
+    {
+      "id": "Eq26",
+      "expression": "SSI_EC = (sum_t(Gu_EC_t) / sum_t(C_EC_t + sum_i(C_i_t))) * 100",
+      "output_variable": "SSI_EC",
+      "dependencies": [
+        "Gu_EC_t",
+        "C_EC_t",
+        "C_i_t"
+      ],
+      "source_ref": "Equation 26"
+    },
+    {
+      "id": "Eq27",
+      "expression": "FI_EC = (1 / m) * ((sum_i(VS_i / (sum_t(G_i_t) + sum_t(G_sh_t))))^2 / sum_i((VS_i / (sum_t(G_i_t) + sum_t(G_sh_t)))^2)) * 100",
+      "output_variable": "FI_EC",
+      "dependencies": [
+        "VS_i",
+        "G_i_t",
+        "G_sh_t",
+        "m"
+      ],
+      "source_ref": "Equation 27"
+    },
+    {
+      "id": "Eq28",
+      "expression": "CO2_EC_0 = sum_t(C_EC_t + sum_i(CP_i_t)) * EF_el + sum_i(sum_t(Q_H_i_t / 0.9)) * EF_H + m * (km_365 / 100) * fuel_cons * EF_T",
+      "output_variable": "CO2_EC_0",
+      "dependencies": [
+        "C_EC_t",
+        "CP_i_t",
+        "Q_H_i_t",
+        "km_365",
+        "fuel_cons",
+        "EF_el",
+        "EF_H",
+        "EF_T",
+        "m"
+      ],
+      "source_ref": "Equation 28"
+    },
+    {
+      "id": "Eq30",
+      "expression": "delta_CO2_H = I_HP * (sum_i(sum_t(CH_i_t)) * COP * EF_H - sum_i(sum_t(max(0, CH_i_t - (G_i_t + G_sh_t)))) * EF_el)",
+      "output_variable": "delta_CO2_H",
+      "dependencies": [
+        "CH_i_t",
+        "EF_H",
+        "EF_el",
+        "COP",
+        "G_i_t",
+        "G_sh_t",
+        "I_HP"
+      ],
+      "source_ref": "Equation 30"
+    },
+    {
+      "id": "Eq31",
+      "expression": "delta_CO2_EV = I_EV * (m * (km_365 / 100) * fuel_cons * EF_T - sum_t(sum_i(max(0, CEV_i_t - (G_i_t + G_sh_t)))) * EF_el)",
+      "output_variable": "delta_CO2_EV",
+      "dependencies": [
+        "km_365",
+        "fuel_cons",
+        "EF_T",
+        "CEV_i_t",
+        "G_i_t",
+        "G_sh_t",
+        "EF_el",
+        "I_EV",
+        "m"
+      ],
+      "source_ref": "Equation 31"
+    },
+    {
+      "id": "Eq29",
+      "expression": "delta_CO2 = sum_t(G_EC_t + sum_i(G_i_t) - sum_i(CEV_i_t) - sum_i(CH_i_t)) * EF_el + delta_CO2_H + delta_CO2_EV",
+      "output_variable": "delta_CO2",
+      "dependencies": [
+        "G_EC_t",
+        "G_i_t",
+        "CEV_i_t",
+        "CH_i_t",
+        "EF_el",
+        "delta_CO2_H",
+        "delta_CO2_EV"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "id": "Eq32",
+      "expression": "CO2_red_index = (delta_CO2 / CO2_EC_0) * 100",
+      "output_variable": "CO2_red_index",
+      "dependencies": [
+        "delta_CO2",
+        "CO2_EC_0"
+      ],
+      "source_ref": "Equation 32"
+    },
+    {
+      "id": "Eq33",
+      "expression": "f_EC = omega_1 * FI_EC + omega_2 * CS_EC + omega_3 * SSI_EC + omega_4 * SCI_EC - omega_5 * GDI_EC + omega_6 * (1 / PBP_EC) * 100 + omega_7 * CO2_red_index",
+      "output_variable": "f_EC",
+      "dependencies": [
+        "omega_1",
+        "omega_2",
+        "omega_3",
+        "omega_4",
+        "omega_5",
+        "omega_6",
+        "omega_7",
+        "FI_EC",
+        "CS_EC",
+        "SSI_EC",
+        "SCI_EC",
+        "GDI_EC",
+        "PBP_EC",
+        "CO2_red_index"
+      ],
+      "source_ref": "Equation 33"
+    },
+    {
+      "id": "Eq_Cost_H_i",
+      "expression": "Cost_H_i = (1 - I_HP) * sum_t((Q_H_i_t / 0.9) * Gas_Price)",
+      "output_variable": "Cost_H_i",
+      "dependencies": [
+        "Q_H_i_t",
+        "Gas_Price",
+        "I_HP"
+      ],
+      "source_ref": "Section 3.1.1"
+    },
+    {
+      "id": "Eq_Cost_T_i",
+      "expression": "Cost_T_i = (1 - I_EV) * ((km_365 / 100) * fuel_cons * Petrol_Price)",
+      "output_variable": "Cost_T_i",
+      "dependencies": [
+        "km_365",
+        "fuel_cons",
+        "Petrol_Price",
+        "I_EV"
+      ],
+      "source_ref": "Section 3.1.1"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "name": "Communal consumption profiles",
+      "inputs": [
+        "CP_i_t"
+      ],
+      "outputs": [
+        "C_EC_t"
+      ],
+      "equation_refs": [],
+      "pseudocode": [
+        "for each timestep t:",
+        "  C_EC_t[t] = 0.03 * sum_i(CP_i_t[i, t])"
+      ],
+      "predecessors": []
+    },
+    {
+      "id": "step2",
+      "name": "Sizing PV capacity and shared generation",
+      "inputs": [
+        "C_EC_t",
+        "Y_spec",
+        "G_i_t"
+      ],
+      "outputs": [
+        "P_PV",
+        "G_EC_t"
+      ],
+      "equation_refs": [
+        "Eq6"
+      ],
+      "pseudocode": [
+        "P_PV = sum_t(C_EC_t) / Y_spec",
+        "for each timestep t:",
+        "  G_EC_t[t] = P_PV * mean_i(G_i_t[i, t] / max_t(G_i_t[i, t]))"
+      ],
+      "predecessors": [
+        "step1"
+      ]
+    },
+    {
+      "id": "step3",
+      "name": "Communal resource distribution allocation",
+      "inputs": [
+        "C_EC_t",
+        "G_EC_t",
+        "m"
+      ],
+      "outputs": [
+        "C_sh_t",
+        "G_sh_t"
+      ],
+      "equation_refs": [
+        "Eq8",
+        "Eq9"
+      ],
+      "pseudocode": [
+        "for each timestep t:",
+        "  C_sh_t[t] = C_EC_t[t] / m",
+        "  G_sh_t[t] = G_EC_t[t] / m"
+      ],
+      "predecessors": [
+        "step2"
+      ]
+    },
+    {
+      "id": "step4",
+      "name": "Sector integration (heating and transport)",
+      "inputs": [
+        "V_i",
+        "T_in",
+        "T_out_t",
+        "k_ins",
+        "COP",
+        "EC_EV",
+        "eta_EV",
+        "km_365",
+        "I_HP",
+        "I_EV"
+      ],
+      "outputs": [
+        "Q_H_i_t",
+        "CH_i_t",
+        "CEV_i_t"
+      ],
+      "equation_refs": [
+        "Eq19",
+        "Eq19_CH_i_t",
+        "Eq20_CEV_i_t"
+      ],
+      "pseudocode": [
+        "for each member i and timestep t:",
+        "  Q_H_i_t[i, t] = V_i * max(0, T_in - T_out_t[t]) * k_ins",
+        "  CH_i_t[i, t] = I_HP * (Q_H_i_t[i, t] / COP)",
+        "  CEV_i_t[i, t] = I_EV * ((EC_EV / eta_EV) * (km_365 / 8760) / 100)"
+      ],
+      "predecessors": []
+    },
+    {
+      "id": "step5",
+      "name": "Aggregate individual consumption",
+      "inputs": [
+        "CP_i_t",
+        "CH_i_t",
+        "CEV_i_t"
+      ],
+      "outputs": [
+        "C_i_t"
+      ],
+      "equation_refs": [
+        "Eq12"
+      ],
+      "pseudocode": [
+        "for each member i and timestep t:",
+        "  C_i_t[i, t] = CP_i_t[i, t] + CH_i_t[i, t] + CEV_i_t[i, t]"
+      ],
+      "predecessors": [
+        "step4"
+      ]
+    },
+    {
+      "id": "step6",
+      "name": "Fossil fuel reference costs",
+      "inputs": [
+        "Q_H_i_t",
+        "Gas_Price",
+        "km_365",
+        "fuel_cons",
+        "Petrol_Price",
+        "I_HP",
+        "I_EV"
+      ],
+      "outputs": [
+        "Cost_H_i",
+        "Cost_T_i"
+      ],
+      "equation_refs": [
+        "Eq_Cost_H_i",
+        "Eq_Cost_T_i"
+      ],
+      "pseudocode": [
+        "for each member i:",
+        "  Cost_H_i[i] = (1 - I_HP) * sum_t((Q_H_i_t[i, t] / 0.9) * Gas_Price)",
+        "  Cost_T_i[i] = (1 - I_EV) * ((km_365 / 100) * fuel_cons * Petrol_Price)"
+      ],
+      "predecessors": [
+        "step4"
+      ]
+    },
+    {
+      "id": "step7",
+      "name": "Community balance modeling",
+      "inputs": [
+        "C_i_t",
+        "C_sh_t",
+        "G_i_t",
+        "G_sh_t"
+      ],
+      "outputs": [
+        "D_i_t",
+        "S_i_t",
+        "D_EC_t",
+        "S_EC_t"
+      ],
+      "equation_refs": [
+        "Eq10",
+        "Eq11",
+        "Eq14",
+        "Eq15"
+      ],
+      "pseudocode": [
+        "for each member i and timestep t:",
+        "  D_i_t[i, t] = max(0, C_i_t[i, t] + C_sh_t[t] - (G_i_t[i, t] + G_sh_t[t]))",
+        "  S_i_t[i, t] = max(0, G_i_t[i, t] + G_sh_t[t] - (C_i_t[i, t] + C_sh_t[t]))",
+        "for each timestep t:",
+        "  D_EC_t[t] = max(0, sum_i(D_i_t[i, t]) - sum_i(S_i_t[i, t]))",
+        "  S_EC_t[t] = max(0, sum_i(S_i_t[i, t]) - sum_i(D_i_t[i, t]))"
+      ],
+      "predecessors": [
+        "step3",
+        "step5"
+      ]
+    },
+    {
+      "id": "step8",
+      "name": "Local Energy Market (LEM) execution",
+      "inputs": [
+        "D_i_t",
+        "S_i_t",
+        "I_LEM"
+      ],
+      "outputs": [
+        "QB_i_t",
+        "QS_i_t"
+      ],
+      "equation_refs": [],
+      "pseudocode": [
+        "if I_LEM == 1:",
+        "  for each timestep t:",
+        "    aggregate_deficit = sum_i(D_i_t[i, t])",
+        "    aggregate_surplus = sum_i(S_i_t[i, t])",
+        "    for each member i:",
+        "      QB_i_t[i, t] = D_i_t[i, t] * min(1, aggregate_surplus / aggregate_deficit)",
+        "      QS_i_t[i, t] = S_i_t[i, t] * min(1, aggregate_deficit / aggregate_surplus)",
+        "else:",
+        "  QB_i_t = matrix_of_zeros()",
+        "  QS_i_t = matrix_of_zeros()"
+      ],
+      "predecessors": [
+        "step7"
+      ]
+    },
+    {
+      "id": "step9",
+      "name": "Community and member payments",
+      "inputs": [
+        "D_EC_t",
+        "ToU_t",
+        "S_EC_t",
+        "FiT_t",
+        "Cost_H_i",
+        "Cost_T_i",
+        "D_i_t",
+        "S_i_t",
+        "QB_i_t",
+        "QS_i_t",
+        "P_LEM_t",
+        "I_HP",
+        "I_EV",
+        "I_LEM",
+        "CP_i_t",
+        "C_EC_t"
+      ],
+      "outputs": [
+        "Pay_EC_0",
+        "Pay_EC",
+        "Pay_i"
+      ],
+      "equation_refs": [
+        "Eq1",
+        "Eq2",
+        "Eq13_Pay_i"
+      ],
+      "pseudocode": [
+        "Pay_EC_0 = sum_t((C_EC_t[t] + sum_i(CP_i_t[i, t])) * ToU_t[t]) + sum_i(Cost_H_i[i] + Cost_T_i[i])",
+        "Pay_EC = sum_t(D_EC_t[t] * ToU_t[t] - S_EC_t[t] * FiT_t[t]) + (1 - I_HP) * sum_i(Cost_H_i[i]) + (1 - I_EV) * sum_i(Cost_T_i[i])",
+        "for each member i:",
+        "  Pay_i[i] = (1 - I_LEM) * sum_t(D_i_t[i, t] * ToU_t[t] - S_i_t[i, t] * FiT_t[t]) + I_LEM * sum_t(QB_i_t[i, t] * P_LEM_t[t] + (D_i_t[i, t] - QB_i_t[i, t]) * ToU_t[t] - (QS_i_t[i, t] * P_LEM_t[t] + (S_i_t[i, t] - QS_i_t[i, t]) * FiT_t[t]))"
+      ],
+      "predecessors": [
+        "step6",
+        "step7",
+        "step8"
+      ]
+    },
+    {
+      "id": "step10",
+      "name": "Value sharing redistribution",
+      "inputs": [
+        "Pay_i",
+        "Pay_EC",
+        "m"
+      ],
+      "outputs": [
+        "VS_EC",
+        "VS_i",
+        "Pay_i_final"
+      ],
+      "equation_refs": [
+        "Eq17",
+        "Eq18_VS_i",
+        "Eq18_Pay_final"
+      ],
+      "pseudocode": [
+        "VS_EC = sum_i(Pay_i[i]) - Pay_EC",
+        "for each member i:",
+        "  VS_i[i] = VS_EC / m",
+        "  Pay_i_final[i] = Pay_i[i] - VS_i[i]"
+      ],
+      "predecessors": [
+        "step9"
+      ]
+    },
+    {
+      "id": "step11",
+      "name": "Investment modeling and payback period",
+      "inputs": [
+        "P_PV",
+        "UC_PV",
+        "UC_HP",
+        "UC_EVCS",
+        "I_HP",
+        "I_EV",
+        "Pay_EC_0",
+        "Pay_EC"
+      ],
+      "outputs": [
+        "Cost_EC",
+        "PBP_EC"
+      ],
+      "equation_refs": [
+        "Eq5",
+        "Eq7"
+      ],
+      "pseudocode": [
+        "Cost_EC = P_PV * UC_PV + I_HP * UC_HP + I_EV * UC_EVCS",
+        "PBP_EC = Cost_EC / (Pay_EC_0 - Pay_EC)"
+      ],
+      "predecessors": [
+        "step2",
+        "step9"
+      ]
+    },
+    {
+      "id": "step12",
+      "name": "Direct PV self-consumption",
+      "inputs": [
+        "C_EC_t",
+        "C_i_t",
+        "G_EC_t",
+        "G_i_t"
+      ],
+      "outputs": [
+        "Gu_EC_t"
+      ],
+      "equation_refs": [
+        "Eq25"
+      ],
+      "pseudocode": [
+        "for each timestep t:",
+        "  Gu_EC_t[t] = min(C_EC_t[t] + sum_i(C_i_t[i, t]), G_EC_t[t] + sum_i(G_i_t[i, t]))"
+      ],
+      "predecessors": [
+        "step5"
+      ]
+    },
+    {
+      "id": "step13",
+      "name": "Sector environmental mitigation",
+      "inputs": [
+        "C_EC_t",
+        "CP_i_t",
+        "Q_H_i_t",
+        "CH_i_t",
+        "CEV_i_t",
+        "G_i_t",
+        "G_sh_t",
+        "G_EC_t",
+        "km_365",
+        "fuel_cons",
+        "EF_el",
+        "EF_H",
+        "EF_T",
+        "COP",
+        "m",
+        "I_HP",
+        "I_EV"
+      ],
+      "outputs": [
+        "CO2_EC_0",
+        "delta_CO2_H",
+        "delta_CO2_EV",
+        "delta_CO2"
+      ],
+      "equation_refs": [
+        "Eq28",
+        "Eq29",
+        "Eq30",
+        "Eq31"
+      ],
+      "pseudocode": [
+        "CO2_EC_0 = sum_t(C_EC_t[t] + sum_i(CP_i_t[i, t])) * EF_el + sum_i(sum_t(Q_H_i_t[i, t] / 0.9)) * EF_H + m * (km_365 / 100) * fuel_cons * EF_T",
+        "delta_CO2_H = I_HP * (sum_i(sum_t(CH_i_t[i, t])) * COP * EF_H - sum_i(sum_t(max(0, CH_i_t[i, t] - (G_i_t[i, t] + G_sh_t[t])))) * EF_el)",
+        "delta_CO2_EV = I_EV * (m * (km_365 / 100) * fuel_cons * EF_T - sum_t(sum_i(max(0, CEV_i_t[i, t] - (G_i_t[i, t] + G_sh_t[t])))) * EF_el)",
+        "delta_CO2 = sum_t(G_EC_t[t] + sum_i(G_i_t[i, t]) - sum_i(CEV_i_t[i, t]) - sum_i(CH_i_t[i, t])) * EF_el + delta_CO2_H + delta_CO2_EV"
+      ],
+      "predecessors": [
+        "step4",
+        "step5"
+      ]
+    },
+    {
+      "id": "step14",
+      "name": "Indices and KPI scorecard calculation",
+      "inputs": [
+        "Pay_EC_0",
+        "Pay_EC",
+        "D_EC_t",
+        "C_EC_t",
+        "C_i_t",
+        "Gu_EC_t",
+        "G_EC_t",
+        "G_i_t",
+        "VS_i",
+        "G_sh_t",
+        "m",
+        "delta_CO2",
+        "CO2_EC_0"
+      ],
+      "outputs": [
+        "CS_EC",
+        "GDI_EC",
+        "SCI_EC",
+        "SSI_EC",
+        "FI_EC",
+        "CO2_red_index"
+      ],
+      "equation_refs": [
+        "Eq22",
+        "Eq23",
+        "Eq24",
+        "Eq26",
+        "Eq27",
+        "Eq32"
+      ],
+      "pseudocode": [
+        "CS_EC = ((Pay_EC_0 - Pay_EC) / Pay_EC_0) * 100",
+        "GDI_EC = (sum_t(D_EC_t) / sum_t(C_EC_t + sum_i(C_i_t))) * 100",
+        "SCI_EC = (sum_t(Gu_EC_t) / sum_t(G_EC_t + sum_i(G_i_t))) * 100",
+        "SSI_EC = (sum_t(Gu_EC_t) / sum_t(C_EC_t + sum_i(C_i_t))) * 100",
+        "for each member i, normalized_share[i] = VS_i[i] / (sum_t(G_i_t[i, t]) + sum_t(G_sh_t[t]))",
+        "FI_EC = (1 / m) * ((sum_i(normalized_share[i]))^2 / sum_i(normalized_share[i]^2)) * 100",
+        "CO2_red_index = (delta_CO2 / CO2_EC_0) * 100"
+      ],
+      "predecessors": [
+        "step10",
+        "step12",
+        "step13"
+      ]
+    },
+    {
+      "id": "step15",
+      "name": "Objective function assessment",
+      "inputs": [
+        "omega_1",
+        "omega_2",
+        "omega_3",
+        "omega_4",
+        "omega_5",
+        "omega_6",
+        "omega_7",
+        "FI_EC",
+        "CS_EC",
+        "SSI_EC",
+        "SCI_EC",
+        "GDI_EC",
+        "PBP_EC",
+        "CO2_red_index"
+      ],
+      "outputs": [
+        "f_EC"
+      ],
+      "equation_refs": [
+        "Eq33"
+      ],
+      "pseudocode": [
+        "f_EC = omega_1 * FI_EC + omega_2 * CS_EC + omega_3 * SSI_EC + omega_4 * SCI_EC - omega_5 * GDI_EC + omega_6 * (1 / PBP_EC) * 100 + omega_7 * CO2_red_index"
+      ],
+      "predecessors": [
+        "step11",
+        "step14"
+      ]
+    }
+  ],
+  "code_generation_plan": {
+    "input_mapping": [
+      {
+        "paper_symbol": "CP_i_t",
+        "canonical_column": "load",
+        "transformation_needed": "Pivot raw DataFrame to wide format with Timestamp as index and member_id as columns representing CP_i_t."
+      },
+      {
+        "paper_symbol": "G_i_t",
+        "canonical_column": "generation",
+        "transformation_needed": "Pivot raw DataFrame to wide format with Timestamp as index and member_id as columns representing G_i_t."
+      },
+      {
+        "paper_symbol": "T_out_t",
+        "canonical_column": "temperature",
+        "transformation_needed": "Extract 1D series aligned with Timestamp index to represent outdoor temperature."
+      }
+    ],
+    "tariff_mapping": [
+      {
+        "paper_parameter": "ToU_t",
+        "tariff_key": "ToU",
+        "how_to_align_with_Timestamp_hour": "Align tariff with Timestamp index by matching hour-of-day."
+      },
+      {
+        "paper_parameter": "FiT_t",
+        "tariff_key": "FiT",
+        "how_to_align_with_Timestamp_hour": "Align tariff with Timestamp index by matching hour-of-day."
+      },
+      {
+        "paper_parameter": "P_LEM_t",
+        "tariff_key": "P_LEM",
+        "how_to_align_with_Timestamp_hour": "Align clearing prices with Timestamp index by matching hour-of-day."
+      }
+    ],
+    "parameter_initialization": [
+      {
+        "parameter_name": "Gas_Price",
+        "default_value": 0.31,
+        "parameters.get(...)": "parameters.get('Gas_Price', 0.31)"
+      },
+      {
+        "parameter_name": "Petrol_Price",
+        "default_value": 7.0,
+        "parameters.get(...)": "parameters.get('Petrol_Price', 7.0)"
+      },
+      {
+        "parameter_name": "UC_PV",
+        "default_value": 3500.0,
+        "parameters.get(...)": "parameters.get('UC_PV', 3500.0)"
+      },
+      {
+        "parameter_name": "UC_HP",
+        "default_value": 1710000.0,
+        "parameters.get(...)": "parameters.get('UC_HP', 1710000.0)"
+      },
+      {
+        "parameter_name": "UC_EVCS",
+        "default_value": 100000.0,
+        "parameters.get(...)": "parameters.get('UC_EVCS', 100000.0)"
+      },
+      {
+        "parameter_name": "Y_spec",
+        "default_value": 1200.0,
+        "parameters.get(...)": "parameters.get('Y_spec', 1200.0)"
+      },
+      {
+        "parameter_name": "m",
+        "default_value": 114,
+        "parameters.get(...)": "parameters.get('m', 114)"
+      },
+      {
+        "parameter_name": "V_i",
+        "default_value": 175.0,
+        "parameters.get(...)": "parameters.get('V_i', 175.0)"
+      },
+      {
+        "parameter_name": "k_ins",
+        "default_value": 0.2,
+        "parameters.get(...)": "parameters.get('k_ins', 0.2)"
+      },
+      {
+        "parameter_name": "T_in",
+        "default_value": 24.0,
+        "parameters.get(...)": "parameters.get('T_in', 24.0)"
+      },
+      {
+        "parameter_name": "COP",
+        "default_value": 3.2,
+        "parameters.get(...)": "parameters.get('COP', 3.2)"
+      },
+      {
+        "parameter_name": "fuel_cons",
+        "default_value": 8.0,
+        "parameters.get(...)": "parameters.get('fuel_cons', 8.0)"
+      },
+      {
+        "parameter_name": "km_365",
+        "default_value": 10000.0,
+        "parameters.get(...)": "parameters.get('km_365', 10000.0)"
+      },
+      {
+        "parameter_name": "EC_EV",
+        "default_value": 15.0,
+        "parameters.get(...)": "parameters.get('EC_EV', 15.0)"
+      },
+      {
+        "parameter_name": "eta_EV",
+        "default_value": 0.9,
+        "parameters.get(...)": "parameters.get('eta_EV', 0.9)"
+      },
+      {
+        "parameter_name": "EF_el",
+        "default_value": 0.25,
+        "parameters.get(...)": "parameters.get('EF_el', 0.25)"
+      },
+      {
+        "parameter_name": "EF_H",
+        "default_value": 0.181,
+        "parameters.get(...)": "parameters.get('EF_H', 0.181)"
+      },
+      {
+        "parameter_name": "EF_T",
+        "default_value": 2.31,
+        "parameters.get(...)": "parameters.get('EF_T', 2.31)"
+      },
+      {
+        "parameter_name": "I_HP",
+        "default_value": 1,
+        "parameters.get(...)": "parameters.get('I_HP', 1)"
+      },
+      {
+        "parameter_name": "I_EV",
+        "default_value": 1,
+        "parameters.get(...)": "parameters.get('I_EV', 1)"
+      },
+      {
+        "parameter_name": "I_LEM",
+        "default_value": 0,
+        "parameters.get(...)": "parameters.get('I_LEM', 0)"
+      },
+      {
+        "parameter_name": "I_ind_cov",
+        "default_value": 1,
+        "parameters.get(...)": "parameters.get('I_ind_cov', 1)"
+      }
+    ],
+    "execution_order": [
+      "C_EC_t",
+      "Q_H_i_t",
+      "CH_i_t",
+      "CEV_i_t",
+      "C_i_t",
+      "P_PV",
+      "G_EC_t",
+      "C_sh_t",
+      "G_sh_t",
+      "D_i_t",
+      "S_i_t",
+      "D_EC_t",
+      "S_EC_t",
+      "QB_i_t",
+      "QS_i_t",
+      "Cost_H_i",
+      "Cost_T_i",
+      "Pay_EC_0",
+      "Pay_EC",
+      "Pay_i",
+      "VS_EC",
+      "VS_i",
+      "Pay_i_final",
+      "Cost_EC",
+      "PBP_EC",
+      "Gu_EC_t",
+      "CO2_EC_0",
+      "delta_CO2_H",
+      "delta_CO2_EV",
+      "delta_CO2",
+      "CS_EC",
+      "GDI_EC",
+      "SCI_EC",
+      "SSI_EC",
+      "FI_EC",
+      "CO2_red_index",
+      "f_EC"
+    ],
+    "pseudocode": [
+      "Step 1: Compute shared/communal electricity consumption profile: C_EC_t = 0.03 * CP_i_t.sum(axis=1)",
+      "Step 2: Compute thermal heating demand profile Q_H_i_t: Q_H_i_t = V_i * k_ins * np.maximum(0, T_in - T_out_t) for each member i. Expand T_out_t across all timesteps.",
+      "Step 3: Compute electricity load required for heating CH_i_t: CH_i_t = I_HP * (Q_H_i_t / COP)",
+      "Step 4: Compute electricity load required for EV charging CEV_i_t: CEV_i_t = I_EV * ((EC_EV / eta_EV) * (km_365 / 8760) / 100) across all timesteps for each member i.",
+      "Step 5: Compute total combined individual load: C_i_t = CP_i_t + CH_i_t + CEV_i_t",
+      "Step 6: Compute PV system sizing peak capacity P_PV: P_PV = sum_t(C_EC_t + I_ind_cov * C_i_t.sum(axis=1)) / Y_spec",
+      "Step 7: Compute communal generation profile G_EC_t: G_EC_t = P_PV * G_i_t.mean(axis=1) / G_i_t.mean(axis=1).max()",
+      "Step 8: Compute shared communal profiles allocated per member: C_sh_t = C_EC_t / m, G_sh_t = G_EC_t / m",
+      "Step 9: Compute net electricity import D_i_t and surplus S_i_t per member: D_i_t = np.maximum(0, C_i_t + I_ind_cov * C_sh_t - (G_i_t + I_ind_cov * G_sh_t)), S_i_t = np.maximum(0, G_i_t + I_ind_cov * G_sh_t - (C_i_t + I_ind_cov * C_sh_t))",
+      "Step 10: Compute community balance deficit D_EC_t and surplus S_EC_t: D_EC_t = I_ind_cov * np.maximum(0, D_i_t.sum(axis=1) - S_i_t.sum(axis=1)) + (1 - I_ind_cov) * np.maximum(0, C_EC_t - G_EC_t), S_EC_t = I_ind_cov * np.maximum(0, S_i_t.sum(axis=1) - D_i_t.sum(axis=1)) + (1 - I_ind_cov) * np.maximum(0, G_EC_t - C_EC_t)",
+      "Step 11: Execute Local Energy Market (LEM) trading if active: if I_LEM == 1, QB_i_t = D_i_t * np.minimum(1, S_i_t.sum(axis=1) / D_i_t.sum(axis=1)), QS_i_t = S_i_t * np.minimum(1, D_i_t.sum(axis=1) / S_i_t.sum(axis=1)). Else, QB_i_t = 0, QS_i_t = 0.",
+      "Step 12: Compute conventional fossil fuel reference costs Cost_H_i and Cost_T_i: Cost_H_i = (1 - I_HP) * sum_t((Q_H_i_t / 0.9) * Gas_Price), Cost_T_i = (1 - I_EV) * ((km_365 / 100) * fuel_cons * Petrol_Price) per member i.",
+      "Step 13: Compute baseline payment Pay_EC_0: Pay_EC_0 = sum_t((C_EC_t + CP_i_t.sum(axis=1)) * ToU_t) + Cost_H_i.sum() + Cost_T_i.sum()",
+      "Step 14: Compute community consolidated post-intervention cost Pay_EC: Pay_EC = sum_t(D_EC_t * ToU_t - S_EC_t * FiT_t + (1 - I_ind_cov) * C_i_t.sum(axis=1) * ToU_t) + (1 - I_HP) * Cost_H_i.sum() + (1 - I_EV) * Cost_T_i.sum()",
+      "Step 15: Compute member individual payment Pay_i: Pay_i = sum_t( (1-I_LEM) * (D_i_t * ToU_t - S_i_t * FiT_t) + I_LEM * (QB_i_t * P_LEM_t + (D_i_t - QB_i_t) * ToU_t - (QS_i_t * P_LEM_t + (S_i_t - QS_i_t) * FiT_t)) )",
+      "Step 16: Compute community shared value distribution VS_EC, VS_i and Pay_i_final: VS_EC = I_ind_cov * (Pay_i.sum() - Pay_EC), VS_i = VS_EC / m, Pay_i_final = Pay_i - VS_i",
+      "Step 17: Compute capital cost Cost_EC and payback period PBP_EC: Cost_EC = P_PV * UC_PV + I_HP * UC_HP + I_EV * UC_EVCS, PBP_EC = Cost_EC / (Pay_EC_0 - Pay_EC)",
+      "Step 18: Compute direct PV self-consumption profile: Gu_EC_t = np.minimum(C_EC_t + C_i_t.sum(axis=1), G_EC_t + G_i_t.sum(axis=1))",
+      "Step 19: Compute baseline CO2 emissions: CO2_EC_0 = sum_t(C_EC_t + CP_i_t.sum(axis=1)) * EF_el + sum_i(sum_t(Q_H_i_t / 0.9)) * EF_H + m * (km_365 / 100) * fuel_cons * EF_T",
+      "Step 20: Compute sector carbon reductions: delta_CO2_H = I_HP * (CH_i_t.sum() * COP * EF_H - np.maximum(0, CH_i_t - I_ind_cov * (G_i_t + G_sh_t)).sum() * EF_el), delta_CO2_EV = I_EV * (m * (km_365 / 100) * fuel_cons * EF_T - np.maximum(0, CEV_i_t - I_ind_cov * (G_i_t + G_sh_t)).sum() * EF_el)",
+      "Step 21: Compute aggregate carbon emission savings: delta_CO2 = sum_t(G_EC_t + G_i_t.sum(axis=1) - CEV_i_t.sum(axis=1) - CH_i_t.sum(axis=1)) * EF_el + delta_CO2_H + delta_CO2_EV",
+      "Step 22: Compute metric CS_EC: CS_EC = ((Pay_EC_0 - Pay_EC) / Pay_EC_0) * 100",
+      "Step 23: Compute metric GDI_EC: GDI_EC = (D_EC_t.sum() / (C_EC_t.sum() + C_i_t.sum().sum())) * 100",
+      "Step 24: Compute metric SCI_EC: SCI_EC = (Gu_EC_t.sum() / (G_EC_t.sum() + G_i_t.sum().sum())) * 100",
+      "Step 25: Compute metric SSI_EC: SSI_EC = (Gu_EC_t.sum() / (C_EC_t.sum() + C_i_t.sum().sum())) * 100",
+      "Step 26: Compute Jain's fairness index: normalized_share = VS_i / (G_i_t.sum(axis=0) + G_sh_t.sum(axis=0)), FI_EC = (1 / m) * ((normalized_share.sum())**2 / (normalized_share**2).sum()) * 100",
+      "Step 27: Compute metric CO2_red_index: CO2_red_index = (delta_CO2 / CO2_EC_0) * 100",
+      "Step 28: Compute ultimate score rating f_EC: f_EC = omega_1 * FI_EC + omega_2 * CS_EC + omega_3 * SSI_EC + omega_4 * SCI_EC - omega_5 * GDI_EC + omega_6 * (1 / PBP_EC) * 100 + omega_7 * CO2_red_index"
+    ],
+    "result_dict_keys": [
+      "Pay_EC_0",
+      "Pay_EC",
+      "Pay_i",
+      "Pay_i_final",
+      "VS_EC",
+      "VS_i",
+      "P_PV",
+      "Cost_EC",
+      "PBP_EC",
+      "CO2_EC_0",
+      "delta_CO2",
+      "CS_EC",
+      "GDI_EC",
+      "SCI_EC",
+      "SSI_EC",
+      "FI_EC",
+      "CO2_red_index",
+      "f_EC"
+    ],
+    "validation_checks": [
+      "Ensure load and generation input columns are non-empty and have identical shape dimensions (Timesteps x Members).",
+      "Check that temperature input matches the number of timesteps.",
+      "Verify that ToU and FiT tariff sequences have lengths aligned with the DataFrame timestep index.",
+      "Enforce non-zero yield coefficients to prevent division by zero in PV sizing.",
+      "Validate that payback calculations use a positive denominator to avoid undefined returns in non-saving scenario designs."
+    ]
+  }
+}

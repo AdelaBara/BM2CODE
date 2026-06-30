@@ -1,0 +1,2265 @@
+{
+  "source_pdf": "output\\27a6ba4e625101d4_IS\\27a6ba4e625101d4_IS.pdf",
+  "bm_name": "value share",
+  "name": "value share",
+  "description": "A value sharing (VS) decision and simulation model for heterogeneous energy communities. It calculates individual payments before affiliation and community payments after affiliation to determine the community gain (value share). It then distributes this gain using multiple allocation methods (Equal Quota, Generation-based, Consumption-based, Marginal Contribution, and a proposed Consumption-Generation pro-rate method) and evaluates them using Fairness Index, Self-Sufficiency Index, Self-Consumption Index, and Cost Savings to dynamically select the optimal community strategy.",
+  "objective": "To maximize the community value and stability by selecting the value sharing method that optimizes a weighted objective function combining fairness (Fairness Index) and grid independence (Self-Sufficiency Index).",
+  "symbols": [
+    {
+      "name": "Timestamp",
+      "category": "input",
+      "type": "datetime",
+      "definition": "Date and time of the record, used to align load, generation, and time-of-use tariffs.",
+      "unit": "YYYY-MM-DD HH:MM:SS",
+      "depends_on": [],
+      "dataset_column": "Timestamp",
+      "source_ref": "STAR+METHODS"
+    },
+    {
+      "name": "member_id",
+      "category": "input",
+      "type": "string",
+      "definition": "Unique identifier of the energy community member.",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "member_id",
+      "source_ref": "STAR+METHODS"
+    },
+    {
+      "name": "member_type",
+      "category": "input",
+      "type": "string",
+      "definition": "The archetype category of the member (e.g. residential, prosumer, public building).",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "member_type",
+      "source_ref": "STAR+METHODS"
+    },
+    {
+      "name": "W_c",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Individual hourly energy consumption of member i at hour h.",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "load",
+      "source_ref": "Equation 1"
+    },
+    {
+      "name": "W_g",
+      "category": "input",
+      "type": "matrix",
+      "definition": "Individual hourly energy generation from own RES sources of member i at hour h.",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "generation",
+      "source_ref": "Equation 1"
+    },
+    {
+      "name": "ToU",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Time-of-Use electricity tariff applied for consuming energy from the grid at hour h.",
+      "unit": "EUR/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 2",
+      "value_source": "ec_tariff",
+      "tariff_key": "ToU"
+    },
+    {
+      "name": "FiT",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Feed-In Tariff applied for exporting energy to the grid at hour h.",
+      "unit": "EUR/kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 2",
+      "value_source": "ec_tariff",
+      "tariff_key": "FiT"
+    },
+    {
+      "name": "W_gs",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Hourly energy generation from the community shared asset (e.g. VPP or community solar roof).",
+      "unit": "kWh",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 3"
+    },
+    {
+      "name": "q",
+      "category": "parameter",
+      "type": "vector",
+      "definition": "Investment/ownership quota of member i in the shared generation source.",
+      "unit": "fraction",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 3"
+    },
+    {
+      "name": "n",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Total number of members in the energy community.",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 10"
+    },
+    {
+      "name": "a",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weighting coefficient for the Fairness Index in the community strategy function.",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "b",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Weighting coefficient for the Self-Sufficiency Index in the community strategy function.",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "d_EQ",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Independence increase coefficient for the Equal Quota method.",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "d_CG",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Independence increase coefficient for the proposed Consumption-Generation method.",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "d_MC",
+      "category": "parameter",
+      "type": "scalar",
+      "definition": "Independence increase coefficient for the Marginal Contribution method.",
+      "unit": "",
+      "depends_on": [],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "W_d",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Net individual hourly demand (if positive) or surplus (if negative) of member i at hour h.",
+      "unit": "kWh",
+      "depends_on": [
+        "W_c",
+        "W_g"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 1"
+    },
+    {
+      "name": "CostI",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Individual cost of member i at hour h without community affiliation.",
+      "unit": "EUR",
+      "depends_on": [
+        "W_d",
+        "ToU"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 2"
+    },
+    {
+      "name": "RevI_raw",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Raw individual export revenue of member i at hour h without community affiliation before shared generation credits.",
+      "unit": "EUR",
+      "depends_on": [
+        "W_d",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 2"
+    },
+    {
+      "name": "RevI",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Total individual revenue of member i at hour h including shared generation credits.",
+      "unit": "EUR",
+      "depends_on": [
+        "RevI_raw",
+        "W_gs",
+        "q",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 3"
+    },
+    {
+      "name": "PayI",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Effective payment of member i at hour h without community affiliation.",
+      "unit": "EUR",
+      "depends_on": [
+        "CostI",
+        "RevI"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 4"
+    },
+    {
+      "name": "Pay_0",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Sum of all individual payments without affiliation at hour h.",
+      "unit": "EUR",
+      "depends_on": [
+        "PayI"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 5"
+    },
+    {
+      "name": "Sum_W_d",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Aggregated individual net demand across all community members at hour h.",
+      "unit": "kWh",
+      "depends_on": [
+        "W_d"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 6"
+    },
+    {
+      "name": "Rev_EC",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Hourly revenue earned by the energy community by selling surplus to the grid.",
+      "unit": "EUR",
+      "depends_on": [
+        "W_gs",
+        "Sum_W_d",
+        "FiT"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 6"
+    },
+    {
+      "name": "Cost_EC",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Hourly cost paid by the energy community to the grid to cover community deficit.",
+      "unit": "EUR",
+      "depends_on": [
+        "W_gs",
+        "Sum_W_d",
+        "ToU"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 7"
+    },
+    {
+      "name": "Pay_EC",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Effective community payment to the grid at hour h.",
+      "unit": "EUR",
+      "depends_on": [
+        "Cost_EC",
+        "Rev_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 8"
+    },
+    {
+      "name": "G_EC",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Total monetary gain (value share) generated by the community at hour h.",
+      "unit": "EUR",
+      "depends_on": [
+        "Pay_0",
+        "Pay_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 9"
+    },
+    {
+      "name": "G_EQ",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Gain distributed to member i at hour h using the Equal Quota method.",
+      "unit": "EUR",
+      "depends_on": [
+        "G_EC",
+        "n"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 10"
+    },
+    {
+      "name": "G_G",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Gain distributed to member i at hour h using the Generation-based method.",
+      "unit": "EUR",
+      "depends_on": [
+        "G_EC",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 11"
+    },
+    {
+      "name": "G_C",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Gain distributed to member i at hour h using the Consumption-based method.",
+      "unit": "EUR",
+      "depends_on": [
+        "G_EC",
+        "W_c"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 12"
+    },
+    {
+      "name": "MC_i",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Marginal contribution of member i to the community gain at hour h.",
+      "unit": "EUR",
+      "depends_on": [
+        "G_EC",
+        "W_d",
+        "W_gs",
+        "ToU",
+        "FiT",
+        "Pay_0",
+        "PayI"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 13"
+    },
+    {
+      "name": "G_MC",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Gain distributed to member i at hour h using the Marginal Contribution method.",
+      "unit": "EUR",
+      "depends_on": [
+        "MC_i",
+        "G_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 14"
+    },
+    {
+      "name": "W_net",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Individual net energy metered for member i at hour h, accounting for consumption, own generation, and shared generation credit.",
+      "unit": "kWh",
+      "depends_on": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 16"
+    },
+    {
+      "name": "qS",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Individual proportional contribution of member i to the community surplus at hour h.",
+      "unit": "fraction",
+      "depends_on": [
+        "W_net"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 17"
+    },
+    {
+      "name": "qD",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Individual proportional contribution of member i to the community deficit at hour h.",
+      "unit": "fraction",
+      "depends_on": [
+        "W_net"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 18"
+    },
+    {
+      "name": "G_CG",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Gain distributed to member i at hour h using the proposed Consumption-Generation pro-rate method.",
+      "unit": "EUR",
+      "depends_on": [
+        "W_net",
+        "qD",
+        "qS",
+        "G_EC",
+        "n"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 19"
+    },
+    {
+      "name": "Wused_i",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Local generation used by member i at hour h.",
+      "unit": "kWh",
+      "depends_on": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 23"
+    },
+    {
+      "name": "Wused_EC",
+      "category": "derived",
+      "type": "vector",
+      "definition": "Local generation used in the entire community at hour h.",
+      "unit": "kWh",
+      "depends_on": [
+        "W_c",
+        "W_g",
+        "W_gs"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 25"
+    },
+    {
+      "name": "x_EQ",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Normalized gain for member i at hour h under Equal Quota, used in Fairness Index.",
+      "unit": "EUR/kWh",
+      "depends_on": [
+        "G_EQ",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "x_CG",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Normalized gain for member i at hour h under Consumption-Generation, used in Fairness Index.",
+      "unit": "EUR/kWh",
+      "depends_on": [
+        "G_CG",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "x_MC",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Normalized gain for member i at hour h under Marginal Contribution, used in Fairness Index.",
+      "unit": "EUR/kWh",
+      "depends_on": [
+        "G_MC",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "CS_i_EQ",
+      "category": "metric",
+      "type": "matrix",
+      "definition": "Hourly relative cost savings of member i under the Equal Quota method.",
+      "unit": "%",
+      "depends_on": [
+        "G_EQ",
+        "PayI"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 20"
+    },
+    {
+      "name": "CS_i_CG",
+      "category": "metric",
+      "type": "matrix",
+      "definition": "Hourly relative cost savings of member i under the proposed Consumption-Generation method.",
+      "unit": "%",
+      "depends_on": [
+        "G_CG",
+        "PayI"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 20"
+    },
+    {
+      "name": "CS_i_MC",
+      "category": "metric",
+      "type": "matrix",
+      "definition": "Hourly relative cost savings of member i under the Marginal Contribution method.",
+      "unit": "%",
+      "depends_on": [
+        "G_MC",
+        "PayI"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 20"
+    },
+    {
+      "name": "CS_EC",
+      "category": "metric",
+      "type": "vector",
+      "definition": "Hourly relative cost savings of the energy community.",
+      "unit": "%",
+      "depends_on": [
+        "Pay_EC",
+        "Pay_0"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 21"
+    },
+    {
+      "name": "SSI_i",
+      "category": "metric",
+      "type": "matrix",
+      "definition": "Self-sufficiency index of member i at hour h.",
+      "unit": "fraction",
+      "depends_on": [
+        "Wused_i",
+        "W_c"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 22"
+    },
+    {
+      "name": "SSI_EC",
+      "category": "metric",
+      "type": "vector",
+      "definition": "Self-sufficiency index of the energy community at hour h.",
+      "unit": "fraction",
+      "depends_on": [
+        "Wused_EC",
+        "W_c"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 24"
+    },
+    {
+      "name": "SCI_i",
+      "category": "metric",
+      "type": "matrix",
+      "definition": "Self-consumption index of member i at hour h.",
+      "unit": "fraction",
+      "depends_on": [
+        "Wused_i",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 26"
+    },
+    {
+      "name": "SCI_EC",
+      "category": "metric",
+      "type": "vector",
+      "definition": "Self-consumption index of the energy community at hour h.",
+      "unit": "fraction",
+      "depends_on": [
+        "Wused_EC",
+        "W_g",
+        "W_gs"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 27"
+    },
+    {
+      "name": "FI_EC_EQ_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average Fairness Index of the community under the Equal Quota allocation method over the simulated period.",
+      "unit": "fraction",
+      "depends_on": [
+        "x_EQ",
+        "n"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 28"
+    },
+    {
+      "name": "FI_EC_CG_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average Fairness Index of the community under the proposed Consumption-Generation allocation method over the simulated period.",
+      "unit": "fraction",
+      "depends_on": [
+        "x_CG",
+        "n"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 28"
+    },
+    {
+      "name": "FI_EC_MC_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average Fairness Index of the community under the Marginal Contribution allocation method over the simulated period.",
+      "unit": "fraction",
+      "depends_on": [
+        "x_MC",
+        "n"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 28"
+    },
+    {
+      "name": "SSI_EC_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average Self-Sufficiency Index of the energy community over the simulated period.",
+      "unit": "fraction",
+      "depends_on": [
+        "SSI_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 24"
+    },
+    {
+      "name": "f_EC_EQ",
+      "category": "output",
+      "type": "scalar",
+      "definition": "Objective function score evaluated for the Equal Quota method.",
+      "unit": "",
+      "depends_on": [
+        "a",
+        "b",
+        "FI_EC_EQ_avg",
+        "SSI_EC_avg",
+        "d_EQ"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "f_EC_CG",
+      "category": "output",
+      "type": "scalar",
+      "definition": "Objective function score evaluated for the proposed Consumption-Generation method.",
+      "unit": "",
+      "depends_on": [
+        "a",
+        "b",
+        "FI_EC_CG_avg",
+        "SSI_EC_avg",
+        "d_CG"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "f_EC_MC",
+      "category": "output",
+      "type": "scalar",
+      "definition": "Objective function score evaluated for the Marginal Contribution method.",
+      "unit": "",
+      "depends_on": [
+        "a",
+        "b",
+        "FI_EC_MC_avg",
+        "SSI_EC_avg",
+        "d_MC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 30"
+    },
+    {
+      "name": "optimal_method",
+      "category": "output",
+      "type": "string",
+      "definition": "The name of the allocation method that maximizes the energy community objective function.",
+      "unit": "",
+      "depends_on": [
+        "f_EC_EQ",
+        "f_EC_CG",
+        "f_EC_MC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Algorithm 1"
+    },
+    {
+      "name": "x_G",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Normalized gain for member i at hour h under Generation-based method, used in Fairness Index.",
+      "unit": "EUR/kWh",
+      "depends_on": [
+        "G_G",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "x_C",
+      "category": "derived",
+      "type": "matrix",
+      "definition": "Normalized gain for member i at hour h under Consumption-based method, used in Fairness Index.",
+      "unit": "EUR/kWh",
+      "depends_on": [
+        "G_C",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "FI_EC_G_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average Fairness Index of the community under the Generation-based allocation method over the simulated period.",
+      "unit": "fraction",
+      "depends_on": [
+        "x_G",
+        "n"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 28"
+    },
+    {
+      "name": "FI_EC_C_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average Fairness Index of the community under the Consumption-based allocation method over the simulated period.",
+      "unit": "fraction",
+      "depends_on": [
+        "x_C",
+        "n"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 28"
+    },
+    {
+      "name": "CS_EC_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average relative cost savings of the energy community over the simulated period.",
+      "unit": "%",
+      "depends_on": [
+        "CS_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 21"
+    },
+    {
+      "name": "SCI_EC_avg",
+      "category": "metric",
+      "type": "scalar",
+      "definition": "Average Self-Consumption Index of the energy community over the simulated period.",
+      "unit": "fraction",
+      "depends_on": [
+        "SCI_EC"
+      ],
+      "dataset_column": "",
+      "source_ref": "Equation 27"
+    }
+  ],
+  "inputs": [
+    "Timestamp",
+    "member_id",
+    "member_type",
+    "W_c",
+    "W_g"
+  ],
+  "parameters": [
+    {
+      "name": "ToU",
+      "definition": "Time-of-Use tariff mapping to the electricity costs per hour",
+      "value": null,
+      "unit": "EUR/kWh",
+      "source_ref": "Equation 2",
+      "value_source": "ec_tariff",
+      "tariff_key": "ToU"
+    },
+    {
+      "name": "FiT",
+      "definition": "Feed-In tariff mapping to the electricity revenues per hour",
+      "value": null,
+      "unit": "EUR/kWh",
+      "source_ref": "Equation 2",
+      "value_source": "ec_tariff",
+      "tariff_key": "FiT"
+    },
+    {
+      "name": "W_gs",
+      "definition": "Hourly solar generation profiles of shared 50 kW PV systems.",
+      "value": null,
+      "unit": "kWh",
+      "source_ref": "Equation 3",
+      "value_source": "dataset",
+      "tariff_key": "",
+      "dataset_expression": "generation*0.1",
+      "dataset_column": ""
+    },
+    {
+      "name": "q",
+      "definition": "Quota allocated per member. For equal share, q_i = 1/n.",
+      "value": 0.082,
+      "unit": "fraction",
+      "source_ref": "Equation 3",
+      "value_source": "user",
+      "tariff_key": "",
+      "dataset_column": "",
+      "dataset_expression": ""
+    },
+    {
+      "name": "n",
+      "definition": "Total number of members in the energy community.",
+      "value": 122,
+      "unit": "",
+      "source_ref": "Equation 10",
+      "value_source": "user",
+      "tariff_key": "",
+      "dataset_column": "",
+      "dataset_expression": ""
+    },
+    {
+      "name": "a",
+      "definition": "Community weight for fairness.",
+      "value": 0.65,
+      "unit": "",
+      "source_ref": "STAR+METHODS",
+      "value_source": "user",
+      "tariff_key": "",
+      "dataset_column": "",
+      "dataset_expression": ""
+    },
+    {
+      "name": "b",
+      "definition": "Community weight for self-sufficiency.",
+      "value": 0.65,
+      "unit": "",
+      "source_ref": "STAR+METHODS",
+      "value_source": "user",
+      "tariff_key": "",
+      "dataset_column": "",
+      "dataset_expression": ""
+    },
+    {
+      "name": "d_EQ",
+      "definition": "Strategic impact value for Equal Quota method.",
+      "value": 0.0,
+      "unit": "",
+      "source_ref": "STAR+METHODS",
+      "value_source": "user",
+      "tariff_key": "",
+      "dataset_column": "",
+      "dataset_expression": ""
+    },
+    {
+      "name": "d_CG",
+      "definition": "Strategic impact value for proposed CG method.",
+      "value": 0.7,
+      "unit": "",
+      "source_ref": "STAR+METHODS",
+      "value_source": "user",
+      "tariff_key": "",
+      "dataset_column": "",
+      "dataset_expression": ""
+    },
+    {
+      "name": "d_MC",
+      "definition": "Strategic impact value for Marginal Contribution method.",
+      "value": 0.5,
+      "unit": "",
+      "source_ref": "STAR+METHODS",
+      "value_source": "user",
+      "tariff_key": "",
+      "dataset_column": "",
+      "dataset_expression": ""
+    }
+  ],
+  "derived_variables": [
+    {
+      "name": "W_d",
+      "definition": "Individual hourly demand/surplus computation.",
+      "depends_on": [
+        "W_c",
+        "W_g"
+      ],
+      "source_ref": "Equation 1"
+    },
+    {
+      "name": "CostI",
+      "definition": "Individual cost computation before community affiliation.",
+      "depends_on": [
+        "W_d",
+        "ToU"
+      ],
+      "source_ref": "Equation 2"
+    },
+    {
+      "name": "RevI_raw",
+      "definition": "Individual raw revenue before shared assets allocation.",
+      "depends_on": [
+        "W_d",
+        "FiT"
+      ],
+      "source_ref": "Equation 2"
+    },
+    {
+      "name": "RevI",
+      "definition": "Individual total revenue accounting for shared quota returns.",
+      "depends_on": [
+        "RevI_raw",
+        "W_gs",
+        "q",
+        "FiT"
+      ],
+      "source_ref": "Equation 3"
+    },
+    {
+      "name": "PayI",
+      "definition": "Effective standalone payment of each member.",
+      "depends_on": [
+        "CostI",
+        "RevI"
+      ],
+      "source_ref": "Equation 4"
+    },
+    {
+      "name": "Pay_0",
+      "definition": "Collective standalone baseline cost of all members.",
+      "depends_on": [
+        "PayI"
+      ],
+      "source_ref": "Equation 5"
+    },
+    {
+      "name": "Sum_W_d",
+      "definition": "Aggregated community demand.",
+      "depends_on": [
+        "W_d"
+      ],
+      "source_ref": "Equation 6"
+    },
+    {
+      "name": "Rev_EC",
+      "definition": "Revenue obtained from exporting local collective surplus.",
+      "depends_on": [
+        "W_gs",
+        "Sum_W_d",
+        "FiT"
+      ],
+      "source_ref": "Equation 6"
+    },
+    {
+      "name": "Cost_EC",
+      "definition": "Cost incurred by collective community imports.",
+      "depends_on": [
+        "W_gs",
+        "Sum_W_d",
+        "ToU"
+      ],
+      "source_ref": "Equation 7"
+    },
+    {
+      "name": "Pay_EC",
+      "definition": "Community aggregated grid bills.",
+      "depends_on": [
+        "Cost_EC",
+        "Rev_EC"
+      ],
+      "source_ref": "Equation 8"
+    },
+    {
+      "name": "G_EC",
+      "definition": "Collective financial savings (surplus/gain) from aggregation.",
+      "depends_on": [
+        "Pay_0",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 9"
+    },
+    {
+      "name": "G_EQ",
+      "definition": "Profit sharing equally.",
+      "depends_on": [
+        "G_EC",
+        "n"
+      ],
+      "source_ref": "Equation 10"
+    },
+    {
+      "name": "G_G",
+      "definition": "Profit sharing based on investment or generation size.",
+      "depends_on": [
+        "G_EC",
+        "q"
+      ],
+      "source_ref": "Equation 11"
+    },
+    {
+      "name": "G_C",
+      "definition": "Profit sharing proportional to consumption load.",
+      "depends_on": [
+        "G_EC",
+        "W_c"
+      ],
+      "source_ref": "Equation 12"
+    },
+    {
+      "name": "MC_i",
+      "definition": "Calculates member's value added by computing community payouts with and without the member.",
+      "depends_on": [
+        "G_EC",
+        "W_d",
+        "W_gs",
+        "ToU",
+        "FiT",
+        "Pay_0",
+        "PayI"
+      ],
+      "source_ref": "Equation 13"
+    },
+    {
+      "name": "G_MC",
+      "definition": "Profit sharing proportional to marginal contribution.",
+      "depends_on": [
+        "MC_i",
+        "G_EC"
+      ],
+      "source_ref": "Equation 14"
+    },
+    {
+      "name": "W_net",
+      "definition": "Metered balance for each participant.",
+      "depends_on": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 16"
+    },
+    {
+      "name": "qS",
+      "definition": "Individual surplus ratio helper.",
+      "depends_on": [
+        "W_net"
+      ],
+      "source_ref": "Equation 17"
+    },
+    {
+      "name": "qD",
+      "definition": "Individual deficit ratio helper.",
+      "depends_on": [
+        "W_net"
+      ],
+      "source_ref": "Equation 18"
+    },
+    {
+      "name": "G_CG",
+      "definition": "Proposed Consumption-Generation sharing method.",
+      "depends_on": [
+        "W_net",
+        "qD",
+        "qS",
+        "G_EC",
+        "n"
+      ],
+      "source_ref": "Equation 19"
+    },
+    {
+      "name": "Wused_i",
+      "definition": "Hourly internal consumption matching available local sources.",
+      "depends_on": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 23"
+    },
+    {
+      "name": "Wused_EC",
+      "definition": "Total hourly consumption matched locally.",
+      "depends_on": [
+        "W_c",
+        "W_g",
+        "W_gs"
+      ],
+      "source_ref": "Equation 25"
+    },
+    {
+      "name": "x_EQ",
+      "definition": "Normalizing metric inputs under Equal Quota.",
+      "depends_on": [
+        "G_EQ",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "x_CG",
+      "definition": "Normalizing metric inputs under proposed method.",
+      "depends_on": [
+        "G_CG",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "x_MC",
+      "definition": "Normalizing metric inputs under Marginal Contribution.",
+      "depends_on": [
+        "G_MC",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "x_G",
+      "definition": "Normalizing metric inputs under Generation-based allocation.",
+      "depends_on": [
+        "G_G",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "name": "x_C",
+      "definition": "Normalizing metric inputs under Consumption-based allocation.",
+      "depends_on": [
+        "G_C",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "CS_i_EQ"
+    },
+    {
+      "name": "CS_i_CG"
+    },
+    {
+      "name": "CS_i_MC"
+    },
+    {
+      "name": "CS_EC"
+    },
+    {
+      "name": "SSI_i"
+    },
+    {
+      "name": "SSI_EC"
+    },
+    {
+      "name": "SCI_i"
+    },
+    {
+      "name": "SCI_EC"
+    },
+    {
+      "name": "FI_EC_EQ_avg"
+    },
+    {
+      "name": "FI_EC_CG_avg"
+    },
+    {
+      "name": "FI_EC_MC_avg"
+    },
+    {
+      "name": "SSI_EC_avg"
+    },
+    {
+      "name": "FI_EC_G_avg"
+    },
+    {
+      "name": "FI_EC_C_avg"
+    },
+    {
+      "name": "CS_EC_avg"
+    },
+    {
+      "name": "SCI_EC_avg"
+    }
+  ],
+  "outputs": [
+    "f_EC_EQ",
+    "f_EC_CG",
+    "f_EC_MC",
+    "optimal_method"
+  ],
+  "equations": [
+    {
+      "id": "Eq1",
+      "expression": "W_d[t, i] = W_c[t, i] - W_g[t, i]",
+      "output_variable": "W_d",
+      "dependencies": [
+        "W_c",
+        "W_g"
+      ],
+      "source_ref": "Equation 1"
+    },
+    {
+      "id": "Eq2_cost",
+      "expression": "CostI[t, i] = W_d[t, i] * ToU[t] if W_d[t, i] > 0 else 0",
+      "output_variable": "CostI",
+      "dependencies": [
+        "W_d",
+        "ToU"
+      ],
+      "source_ref": "Equation 2"
+    },
+    {
+      "id": "Eq2_rev",
+      "expression": "RevI_raw[t, i] = -W_d[t, i] * FiT[t] if W_d[t, i] <= 0 else 0",
+      "output_variable": "RevI_raw",
+      "dependencies": [
+        "W_d",
+        "FiT"
+      ],
+      "source_ref": "Equation 2"
+    },
+    {
+      "id": "Eq3",
+      "expression": "RevI[t, i] = RevI_raw[t, i] + W_gs[t] * q[i] * FiT[t]",
+      "output_variable": "RevI",
+      "dependencies": [
+        "RevI_raw",
+        "W_gs",
+        "q",
+        "FiT"
+      ],
+      "source_ref": "Equation 3"
+    },
+    {
+      "id": "Eq4",
+      "expression": "PayI[t, i] = CostI[t, i] - RevI[t, i]",
+      "output_variable": "PayI",
+      "dependencies": [
+        "CostI",
+        "RevI"
+      ],
+      "source_ref": "Equation 4"
+    },
+    {
+      "id": "Eq5",
+      "expression": "Pay_0[t] = sum(PayI[t, i] for i in range(n))",
+      "output_variable": "Pay_0",
+      "dependencies": [
+        "PayI"
+      ],
+      "source_ref": "Equation 5"
+    },
+    {
+      "id": "Eq6_sum_W_d",
+      "expression": "Sum_W_d[t] = sum(W_d[t, i] for i in range(n))",
+      "output_variable": "Sum_W_d",
+      "dependencies": [
+        "W_d"
+      ],
+      "source_ref": "Equation 6"
+    },
+    {
+      "id": "Eq6_rev_EC",
+      "expression": "Rev_EC[t] = (W_gs[t] - Sum_W_d[t]) * FiT[t] if W_gs[t] > Sum_W_d[t] else 0",
+      "output_variable": "Rev_EC",
+      "dependencies": [
+        "W_gs",
+        "Sum_W_d",
+        "FiT"
+      ],
+      "source_ref": "Equation 6"
+    },
+    {
+      "id": "Eq7",
+      "expression": "Cost_EC[t] = (Sum_W_d[t] - W_gs[t]) * ToU[t] if W_gs[t] < Sum_W_d[t] else 0",
+      "output_variable": "Cost_EC",
+      "dependencies": [
+        "W_gs",
+        "Sum_W_d",
+        "ToU"
+      ],
+      "source_ref": "Equation 7"
+    },
+    {
+      "id": "Eq8",
+      "expression": "Pay_EC[t] = Cost_EC[t] - Rev_EC[t]",
+      "output_variable": "Pay_EC",
+      "dependencies": [
+        "Cost_EC",
+        "Rev_EC"
+      ],
+      "source_ref": "Equation 8"
+    },
+    {
+      "id": "Eq9",
+      "expression": "G_EC[t] = Pay_0[t] - Pay_EC[t]",
+      "output_variable": "G_EC",
+      "dependencies": [
+        "Pay_0",
+        "Pay_EC"
+      ],
+      "source_ref": "Equation 9"
+    },
+    {
+      "id": "Eq10",
+      "expression": "G_EQ[t, i] = G_EC[t] / n",
+      "output_variable": "G_EQ",
+      "dependencies": [
+        "G_EC"
+      ],
+      "source_ref": "Equation 10"
+    },
+    {
+      "id": "Eq11",
+      "expression": "G_G[t, i] = q[i] * G_EC[t]",
+      "output_variable": "G_G",
+      "dependencies": [
+        "G_EC",
+        "q"
+      ],
+      "source_ref": "Equation 11"
+    },
+    {
+      "id": "Eq12",
+      "expression": "G_C[t, i] = (W_c[t, i] / sum(W_c[t, j] for j in range(n))) * G_EC[t]",
+      "output_variable": "G_C",
+      "dependencies": [
+        "G_EC",
+        "W_c"
+      ],
+      "source_ref": "Equation 12"
+    },
+    {
+      "id": "Eq13",
+      "expression": "MC_i[t, i] = G_EC[t] - ((sum(PayI[t, j] for j in range(n) if j != i)) - ( ((sum(W_d[t, j] for j in range(n) if j != i) - W_gs[t] * (1 - q[i])) * ToU[t] if sum(W_d[t, j] for j in range(n) if j != i) > W_gs[t] * (1 - q[i]) else 0) - ((W_gs[t] * (1 - q[i]) - sum(W_d[t, j] for j in range(n) if j != i)) * FiT[t] if W_gs[t] * (1 - q[i]) > sum(W_d[t, j] for j in range(n) if j != i) else 0) ))",
+      "output_variable": "MC_i",
+      "dependencies": [
+        "G_EC",
+        "W_d",
+        "W_gs",
+        "ToU",
+        "FiT",
+        "PayI",
+        "q"
+      ],
+      "source_ref": "Equation 13"
+    },
+    {
+      "id": "Eq14",
+      "expression": "G_MC[t, i] = (MC_i[t, i] / sum(MC_i[t, j] for j in range(n))) * G_EC[t] if sum(MC_i[t, j] for j in range(n)) != 0 else G_EC[t] / n",
+      "output_variable": "G_MC",
+      "dependencies": [
+        "MC_i",
+        "G_EC"
+      ],
+      "source_ref": "Equation 14"
+    },
+    {
+      "id": "Eq16",
+      "expression": "W_net[t, i] = W_c[t, i] - W_g[t, i] - W_gs[t] * q[i]",
+      "output_variable": "W_net",
+      "dependencies": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 16"
+    },
+    {
+      "id": "Eq17",
+      "expression": "qS[t, i] = W_net[t, i] / sum(W_net[t, j] for j in range(n) if W_net[t, j] < 0) if W_net[t, i] < 0 else 0",
+      "output_variable": "qS",
+      "dependencies": [
+        "W_net"
+      ],
+      "source_ref": "Equation 17"
+    },
+    {
+      "id": "Eq18",
+      "expression": "qD[t, i] = W_net[t, i] / sum(W_net[t, j] for j in range(n) if W_net[t, j] > 0) if W_net[t, i] > 0 else 0",
+      "output_variable": "qD",
+      "dependencies": [
+        "W_net"
+      ],
+      "source_ref": "Equation 18"
+    },
+    {
+      "id": "Eq19",
+      "expression": "G_CG[t, i] = ((1 - qD[t, i]) * G_EC[t] / n) if W_net[t, i] > 0 else ((1 + qS[t, i]) * G_EC[t] / n)",
+      "output_variable": "G_CG",
+      "dependencies": [
+        "W_net",
+        "qD",
+        "qS",
+        "G_EC"
+      ],
+      "source_ref": "Equation 19"
+    },
+    {
+      "id": "Eq20_EQ",
+      "expression": "CS_i_EQ[t, i] = (G_EQ[t, i] / PayI[t, i]) * 100 if PayI[t, i] != 0 else 0",
+      "output_variable": "CS_i_EQ",
+      "dependencies": [
+        "G_EQ",
+        "PayI"
+      ],
+      "source_ref": "Equation 20"
+    },
+    {
+      "id": "Eq20_CG",
+      "expression": "CS_i_CG[t, i] = (G_CG[t, i] / PayI[t, i]) * 100 if PayI[t, i] != 0 else 0",
+      "output_variable": "CS_i_CG",
+      "dependencies": [
+        "G_CG",
+        "PayI"
+      ],
+      "source_ref": "Equation 20"
+    },
+    {
+      "id": "Eq20_MC",
+      "expression": "CS_i_MC[t, i] = (G_MC[t, i] / PayI[t, i]) * 100 if PayI[t, i] != 0 else 0",
+      "output_variable": "CS_i_MC",
+      "dependencies": [
+        "G_MC",
+        "PayI"
+      ],
+      "source_ref": "Equation 20"
+    },
+    {
+      "id": "Eq21",
+      "expression": "CS_EC[t] = (1 - Pay_EC[t] / Pay_0[t]) * 100 if Pay_0[t] != 0 else 0",
+      "output_variable": "CS_EC",
+      "dependencies": [
+        "Pay_EC",
+        "Pay_0"
+      ],
+      "source_ref": "Equation 21"
+    },
+    {
+      "id": "Eq23",
+      "expression": "Wused_i[t, i] = min(W_c[t, i], W_g[t, i] + W_gs[t] * q[i])",
+      "output_variable": "Wused_i",
+      "dependencies": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 23"
+    },
+    {
+      "id": "Eq22",
+      "expression": "SSI_i[t, i] = Wused_i[t, i] / W_c[t, i] if W_c[t, i] != 0 else 1.0",
+      "output_variable": "SSI_i",
+      "dependencies": [
+        "Wused_i",
+        "W_c"
+      ],
+      "source_ref": "Equation 22"
+    },
+    {
+      "id": "Eq25",
+      "expression": "Wused_EC[t] = min(sum(W_c[t, i] for i in range(n)), W_gs[t] + sum(W_g[t, i] for i in range(n)))",
+      "output_variable": "Wused_EC",
+      "dependencies": [
+        "W_c",
+        "W_g",
+        "W_gs"
+      ],
+      "source_ref": "Equation 25"
+    },
+    {
+      "id": "Eq24",
+      "expression": "SSI_EC[t] = Wused_EC[t] / sum(W_c[t, i] for i in range(n)) if sum(W_c[t, i] for i in range(n)) != 0 else 1.0",
+      "output_variable": "SSI_EC",
+      "dependencies": [
+        "Wused_EC",
+        "W_c"
+      ],
+      "source_ref": "Equation 24"
+    },
+    {
+      "id": "Eq26",
+      "expression": "SCI_i[t, i] = Wused_i[t, i] / (W_g[t, i] + W_gs[t] * q[i]) if (W_g[t, i] + W_gs[t] * q[i]) != 0 else 1.0",
+      "output_variable": "SCI_i",
+      "dependencies": [
+        "Wused_i",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 26"
+    },
+    {
+      "id": "Eq27",
+      "expression": "SCI_EC[t] = Wused_EC[t] / (W_gs[t] + sum(W_g[t, i] for i in range(n))) if (W_gs[t] + sum(W_g[t, i] for i in range(n))) != 0 else 1.0",
+      "output_variable": "SCI_EC",
+      "dependencies": [
+        "Wused_EC",
+        "W_g",
+        "W_gs"
+      ],
+      "source_ref": "Equation 27"
+    },
+    {
+      "id": "Eq29_EQ",
+      "expression": "x_EQ[t, i] = G_EQ[t, i] / (W_g[t, i] + W_gs[t] * q[i]) if (W_g[t, i] + W_gs[t] * q[i]) != 0 else 0",
+      "output_variable": "x_EQ",
+      "dependencies": [
+        "G_EQ",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "id": "Eq29_CG",
+      "expression": "x_CG[t, i] = G_CG[t, i] / (W_g[t, i] + W_gs[t] * q[i]) if (W_g[t, i] + W_gs[t] * q[i]) != 0 else 0",
+      "output_variable": "x_CG",
+      "dependencies": [
+        "G_CG",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "id": "Eq29_MC",
+      "expression": "x_MC[t, i] = G_MC[t, i] / (W_g[t, i] + W_gs[t] * q[i]) if (W_g[t, i] + W_gs[t] * q[i]) != 0 else 0",
+      "output_variable": "x_MC",
+      "dependencies": [
+        "G_MC",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "id": "Eq28_EQ",
+      "expression": "FI_EC_EQ_avg = average_over_time((1 / n) * (sum(x_EQ[t, i] for i in range(n)) ** 2) / sum((x_EQ[t, i]) ** 2 for i in range(n)))",
+      "output_variable": "FI_EC_EQ_avg",
+      "dependencies": [
+        "x_EQ"
+      ],
+      "source_ref": "Equation 28"
+    },
+    {
+      "id": "Eq28_CG",
+      "expression": "FI_EC_CG_avg = average_over_time((1 / n) * (sum(x_CG[t, i] for i in range(n)) ** 2) / sum((x_CG[t, i]) ** 2 for i in range(n)))",
+      "output_variable": "FI_EC_CG_avg",
+      "dependencies": [
+        "x_CG"
+      ],
+      "source_ref": "Equation 28"
+    },
+    {
+      "id": "Eq28_MC",
+      "expression": "FI_EC_MC_avg = average_over_time((1 / n) * (sum(x_MC[t, i] for i in range(n)) ** 2) / sum((x_MC[t, i]) ** 2 for i in range(n)))",
+      "output_variable": "FI_EC_MC_avg",
+      "dependencies": [
+        "x_MC"
+      ],
+      "source_ref": "Equation 28"
+    },
+    {
+      "id": "Eq24_avg",
+      "expression": "SSI_EC_avg = average_over_time(SSI_EC[t])",
+      "output_variable": "SSI_EC_avg",
+      "dependencies": [
+        "SSI_EC"
+      ],
+      "source_ref": "Equation 24"
+    },
+    {
+      "id": "Eq30_EQ",
+      "expression": "f_EC_EQ = a * FI_EC_EQ_avg + b * SSI_EC_avg * (1 + d_EQ)",
+      "output_variable": "f_EC_EQ",
+      "dependencies": [
+        "a",
+        "b",
+        "FI_EC_EQ_avg",
+        "SSI_EC_avg",
+        "d_EQ"
+      ],
+      "source_ref": "Equation 30"
+    },
+    {
+      "id": "Eq30_CG",
+      "expression": "f_EC_CG = a * FI_EC_CG_avg + b * SSI_EC_avg * (1 + d_CG)",
+      "output_variable": "f_EC_CG",
+      "dependencies": [
+        "a",
+        "b",
+        "FI_EC_CG_avg",
+        "SSI_EC_avg",
+        "d_CG"
+      ],
+      "source_ref": "Equation 30"
+    },
+    {
+      "id": "Eq30_MC",
+      "expression": "f_EC_MC = a * FI_EC_MC_avg + b * SSI_EC_avg * (1 + d_MC)",
+      "output_variable": "f_EC_MC",
+      "dependencies": [
+        "a",
+        "b",
+        "FI_EC_MC_avg",
+        "SSI_EC_avg",
+        "d_MC"
+      ],
+      "source_ref": "Equation 30"
+    },
+    {
+      "id": "Eq_opt",
+      "expression": "optimal_method = select_max_method_name({'EQ': f_EC_EQ, 'CG': f_EC_CG, 'MC': f_EC_MC})",
+      "output_variable": "optimal_method",
+      "dependencies": [
+        "f_EC_EQ",
+        "f_EC_CG",
+        "f_EC_MC"
+      ],
+      "source_ref": "Algorithm 1"
+    },
+    {
+      "id": "Eq29_G",
+      "expression": "x_G[t, i] = G_G[t, i] / (W_g[t, i] + W_gs[t] * q[i]) if (W_g[t, i] + W_gs[t] * q[i]) != 0 else 0",
+      "output_variable": "x_G",
+      "dependencies": [
+        "G_G",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "id": "Eq29_C",
+      "expression": "x_C[t, i] = G_C[t, i] / (W_g[t, i] + W_gs[t] * q[i]) if (W_g[t, i] + W_gs[t] * q[i]) != 0 else 0",
+      "output_variable": "x_C",
+      "dependencies": [
+        "G_C",
+        "W_g",
+        "W_gs",
+        "q"
+      ],
+      "source_ref": "Equation 29"
+    },
+    {
+      "id": "Eq28_G",
+      "expression": "FI_EC_G_avg = average_over_time((1 / n) * (sum(x_G[t, i] for i in range(n)) ** 2) / sum((x_G[t, i]) ** 2 for i in range(n)))",
+      "output_variable": "FI_EC_G_avg",
+      "dependencies": [
+        "x_G"
+      ],
+      "source_ref": "Equation 28"
+    },
+    {
+      "id": "Eq28_C",
+      "expression": "FI_EC_C_avg = average_over_time((1 / n) * (sum(x_C[t, i] for i in range(n)) ** 2) / sum((x_C[t, i]) ** 2 for i in range(n)))",
+      "output_variable": "FI_EC_C_avg",
+      "dependencies": [
+        "x_C"
+      ],
+      "source_ref": "Equation 28"
+    },
+    {
+      "id": "Eq21_avg",
+      "expression": "CS_EC_avg = average_over_time(CS_EC[t])",
+      "output_variable": "CS_EC_avg",
+      "dependencies": [
+        "CS_EC"
+      ],
+      "source_ref": "Equation 21"
+    },
+    {
+      "id": "Eq27_avg",
+      "expression": "SCI_EC_avg = average_over_time(SCI_EC[t])",
+      "output_variable": "SCI_EC_avg",
+      "dependencies": [
+        "SCI_EC"
+      ],
+      "source_ref": "Equation 27"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_1",
+      "name": "Demand evaluation",
+      "inputs": [
+        "W_c",
+        "W_g"
+      ],
+      "outputs": [
+        "W_d"
+      ],
+      "equation_refs": [
+        "Eq1"
+      ],
+      "pseudocode": [
+        "for each timestep t and member i:",
+        "  W_d[t, i] = W_c[t, i] - W_g[t, i]"
+      ],
+      "predecessors": []
+    },
+    {
+      "id": "step_2",
+      "name": "Individual baseline payouts",
+      "inputs": [
+        "W_d",
+        "ToU",
+        "FiT",
+        "W_gs",
+        "q"
+      ],
+      "outputs": [
+        "CostI",
+        "RevI_raw",
+        "RevI",
+        "PayI",
+        "Pay_0"
+      ],
+      "equation_refs": [
+        "Eq2_cost",
+        "Eq2_rev",
+        "Eq3",
+        "Eq4",
+        "Eq5"
+      ],
+      "pseudocode": [
+        "for each timestep t:",
+        "  for each member i:",
+        "    CostI[t, i] = W_d[t, i] * ToU[t] if W_d[t, i] > 0 else 0",
+        "    RevI_raw[t, i] = -W_d[t, i] * FiT[t] if W_d[t, i] <= 0 else 0",
+        "    RevI[t, i] = RevI_raw[t, i] + W_gs[t] * q[i] * FiT[t]",
+        "    PayI[t, i] = CostI[t, i] - RevI[t, i]",
+        "  Pay_0[t] = sum(PayI[t, i] for i in range(n))"
+      ],
+      "predecessors": [
+        "step_1"
+      ]
+    },
+    {
+      "id": "step_3",
+      "name": "Energy Community aggregations",
+      "inputs": [
+        "W_d",
+        "W_gs",
+        "ToU",
+        "FiT",
+        "Pay_0"
+      ],
+      "outputs": [
+        "Sum_W_d",
+        "Rev_EC",
+        "Cost_EC",
+        "Pay_EC",
+        "G_EC"
+      ],
+      "equation_refs": [
+        "Eq6_sum_W_d",
+        "Eq6_rev_EC",
+        "Eq7",
+        "Eq8",
+        "Eq9"
+      ],
+      "pseudocode": [
+        "for each timestep t:",
+        "  Sum_W_d[t] = sum(W_d[t, i] for i in range(n))",
+        "  Rev_EC[t] = (W_gs[t] - Sum_W_d[t]) * FiT[t] if W_gs[t] > Sum_W_d[t] else 0",
+        "  Cost_EC[t] = (Sum_W_d[t] - W_gs[t]) * ToU[t] if W_gs[t] < Sum_W_d[t] else 0",
+        "  Pay_EC[t] = Cost_EC[t] - Rev_EC[t]",
+        "  G_EC[t] = Pay_0[t] - Pay_EC[t]"
+      ],
+      "predecessors": [
+        "step_2"
+      ]
+    },
+    {
+      "id": "step_4",
+      "name": "Baseline value sharing allocation",
+      "inputs": [
+        "G_EC",
+        "q",
+        "W_c"
+      ],
+      "outputs": [
+        "G_EQ",
+        "G_G",
+        "G_C"
+      ],
+      "equation_refs": [
+        "Eq10",
+        "Eq11",
+        "Eq12"
+      ],
+      "pseudocode": [
+        "for each timestep t and member i:",
+        "  G_EQ[t, i] = G_EC[t] / n",
+        "  G_G[t, i] = q[i] * G_EC[t]",
+        "  G_C[t, i] = (W_c[t, i] / sum(W_c[t, j] for j in range(n))) * G_EC[t]"
+      ],
+      "predecessors": [
+        "step_3"
+      ]
+    },
+    {
+      "id": "step_5",
+      "name": "Marginal contribution allocation",
+      "inputs": [
+        "G_EC",
+        "W_d",
+        "W_gs",
+        "ToU",
+        "FiT",
+        "PayI",
+        "q"
+      ],
+      "outputs": [
+        "MC_i",
+        "G_MC"
+      ],
+      "equation_refs": [
+        "Eq13",
+        "Eq14"
+      ],
+      "pseudocode": [
+        "for each timestep t and member i:",
+        "  MC_i[t, i] = G_EC[t] - G_without_i(t, i)",
+        "  G_MC[t, i] = (MC_i[t, i] / sum(MC_i[t, j] for j in range(n))) * G_EC[t]"
+      ],
+      "predecessors": [
+        "step_3"
+      ]
+    },
+    {
+      "id": "step_6",
+      "name": "Consumption-Generation pro-rate allocation",
+      "inputs": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q",
+        "G_EC"
+      ],
+      "outputs": [
+        "W_net",
+        "qS",
+        "qD",
+        "G_CG"
+      ],
+      "equation_refs": [
+        "Eq16",
+        "Eq17",
+        "Eq18",
+        "Eq19"
+      ],
+      "pseudocode": [
+        "for each timestep t:",
+        "  for each member i:",
+        "    W_net[t, i] = W_c[t, i] - W_g[t, i] - W_gs[t] * q[i]",
+        "  for each member i:",
+        "    qS[t, i] = W_net[t, i] / sum(W_net[t, j] for j in range(n) if W_net[t, j] < 0) if W_net[t, i] < 0 else 0",
+        "    qD[t, i] = W_net[t, i] / sum(W_net[t, j] for j in range(n) if W_net[t, j] > 0) if W_net[t, i] > 0 else 0",
+        "    G_CG[t, i] = ((1 - qD[t, i]) * G_EC[t] / n) if W_net[t, i] > 0 else ((1 + qS[t, i]) * G_EC[t] / n)"
+      ],
+      "predecessors": [
+        "step_3"
+      ]
+    },
+    {
+      "id": "step_7",
+      "name": "Self-Sufficiency and Savings Assessment",
+      "inputs": [
+        "W_c",
+        "W_g",
+        "W_gs",
+        "q",
+        "G_EQ",
+        "G_CG",
+        "G_MC",
+        "PayI",
+        "Pay_EC",
+        "Pay_0"
+      ],
+      "outputs": [
+        "Wused_i",
+        "SSI_i",
+        "Wused_EC",
+        "SSI_EC",
+        "SCI_i",
+        "SCI_EC",
+        "CS_i_EQ",
+        "CS_i_CG",
+        "CS_i_MC",
+        "CS_EC"
+      ],
+      "equation_refs": [
+        "Eq23",
+        "Eq22",
+        "Eq25",
+        "Eq24",
+        "Eq26",
+        "Eq27",
+        "Eq20_EQ",
+        "Eq20_CG",
+        "Eq20_MC",
+        "Eq21"
+      ],
+      "pseudocode": [
+        "for each timestep t:",
+        "  Wused_EC[t] = min(sum(W_c[t, i]), W_gs[t] + sum(W_g[t, i]))",
+        "  SSI_EC[t] = Wused_EC[t] / sum(W_c[t, i])",
+        "  SCI_EC[t] = Wused_EC[t] / (W_gs[t] + sum(W_g[t, i]))",
+        "  CS_EC[t] = (1 - Pay_EC[t]/Pay_0[t])*100",
+        "  for each member i:",
+        "    Wused_i[t, i] = min(W_c[t, i], W_g[t, i] + W_gs[t] * q[i])",
+        "    SSI_i[t, i] = Wused_i[t, i] / W_c[t, i]",
+        "    SCI_i[t, i] = Wused_i[t, i] / (W_g[t, i] + W_gs[t] * q[i])",
+        "    CS_i_EQ[t, i] = (G_EQ[t, i]/PayI[t, i])*100",
+        "    CS_i_CG[t, i] = (G_CG[t, i]/PayI[t, i])*100",
+        "    CS_i_MC[t, i] = (G_MC[t, i]/PayI[t, i])*100"
+      ],
+      "predecessors": [
+        "step_4",
+        "step_5",
+        "step_6"
+      ]
+    },
+    {
+      "id": "step_8",
+      "name": "Fairness index calculations",
+      "inputs": [
+        "G_EQ",
+        "G_CG",
+        "G_MC",
+        "W_g",
+        "W_gs",
+        "q",
+        "SSI_EC"
+      ],
+      "outputs": [
+        "x_EQ",
+        "x_CG",
+        "x_MC",
+        "FI_EC_EQ_avg",
+        "FI_EC_CG_avg",
+        "FI_EC_MC_avg",
+        "SSI_EC_avg"
+      ],
+      "equation_refs": [
+        "Eq29_EQ",
+        "Eq29_CG",
+        "Eq29_MC",
+        "Eq28_EQ",
+        "Eq28_CG",
+        "Eq28_MC",
+        "Eq24_avg"
+      ],
+      "pseudocode": [
+        "for each timestep t and member i:",
+        "  x_EQ[t, i] = G_EQ[t, i] / (W_g[t, i] + W_gs[t]*q[i])",
+        "  x_CG[t, i] = G_CG[t, i] / (W_g[t, i] + W_gs[t]*q[i])",
+        "  x_MC[t, i] = G_MC[t, i] / (W_g[t, i] + W_gs[t]*q[i])",
+        "Compute average Jain's fairness index for EQ, CG, MC over period",
+        "Compute average SSI_EC_avg"
+      ],
+      "predecessors": [
+        "step_7"
+      ]
+    },
+    {
+      "id": "step_9",
+      "name": "Strategic Decision Formulation",
+      "inputs": [
+        "a",
+        "b",
+        "FI_EC_EQ_avg",
+        "FI_EC_CG_avg",
+        "FI_EC_MC_avg",
+        "SSI_EC_avg",
+        "d_EQ",
+        "d_CG",
+        "d_MC"
+      ],
+      "outputs": [
+        "f_EC_EQ",
+        "f_EC_CG",
+        "f_EC_MC",
+        "optimal_method"
+      ],
+      "equation_refs": [
+        "Eq30_EQ",
+        "Eq30_CG",
+        "Eq30_MC",
+        "Eq_opt"
+      ],
+      "pseudocode": [
+        "f_EC_EQ = a * FI_EC_EQ_avg + b * SSI_EC_avg * (1 + d_EQ)",
+        "f_EC_CG = a * FI_EC_CG_avg + b * SSI_EC_avg * (1 + d_CG)",
+        "f_EC_MC = a * FI_EC_MC_avg + b * SSI_EC_avg * (1 + d_MC)",
+        "optimal_method = select_max_name({'EQ': f_EC_EQ, 'CG': f_EC_CG, 'MC': f_EC_MC})"
+      ],
+      "predecessors": [
+        "step_8"
+      ]
+    }
+  ],
+  "code_generation_plan": {
+    "input_mapping": [
+      {
+        "paper_symbol": "W_c",
+        "canonical_column": "load",
+        "transformation": "Reshape from long-format to matrix of size (T x n) where T is the number of timesteps and n is the number of members."
+      },
+      {
+        "paper_symbol": "W_g",
+        "canonical_column": "generation",
+        "transformation": "Reshape from long-format to matrix of size (T x n) matching timesteps and members."
+      },
+      {
+        "paper_symbol": "Timestamp",
+        "canonical_column": "Timestamp",
+        "transformation": "Used as the index of the timesteps."
+      },
+      {
+        "paper_symbol": "member_id",
+        "canonical_column": "member_id",
+        "transformation": "Used to group and uniquely identify each of the n members."
+      }
+    ],
+    "tariff_mapping": [
+      {
+        "paper_parameter": "ToU",
+        "tariff_key": "ToU",
+        "transformation": "Map hourly rate based on hour of the day: peak hours (14:00 to 23:00) mapped to 0.8 EUR/kWh, and off-peak mapped to 0.5 EUR/kWh."
+      },
+      {
+        "paper_parameter": "FiT",
+        "tariff_key": "FiT",
+        "transformation": "Set as a constant rate of 0.3 EUR/kWh across all timesteps."
+      }
+    ],
+    "parameter_initialization": [
+      {
+        "parameter_name": "W_gs",
+        "default_value": "pandas Series of length T containing shared PV generation profile",
+        "initialization_expression": "parameters.get('W_gs')"
+      },
+      {
+        "parameter_name": "q",
+        "default_value": "numpy array of length n containing equal quotas (1/n) if not provided",
+        "initialization_expression": "parameters.get('q', np.full(n, 1.0 / n))"
+      },
+      {
+        "parameter_name": "a",
+        "default_value": 0.65,
+        "initialization_expression": "parameters.get('a', 0.65)"
+      },
+      {
+        "parameter_name": "b",
+        "default_value": 0.65,
+        "initialization_expression": "parameters.get('b', 0.65)"
+      },
+      {
+        "parameter_name": "d_EQ",
+        "default_value": 0.0,
+        "initialization_expression": "parameters.get('d_EQ', 0.0)"
+      },
+      {
+        "parameter_name": "d_CG",
+        "default_value": 0.7,
+        "initialization_expression": "parameters.get('d_CG', 0.7)"
+      },
+      {
+        "parameter_name": "d_MC",
+        "default_value": 0.5,
+        "initialization_expression": "parameters.get('d_MC', 0.5)"
+      }
+    ],
+    "execution_order": [
+      "W_d",
+      "CostI",
+      "RevI_raw",
+      "RevI",
+      "PayI",
+      "Pay_0",
+      "Sum_W_d",
+      "Rev_EC",
+      "Cost_EC",
+      "Pay_EC",
+      "G_EC",
+      "G_EQ",
+      "G_G",
+      "G_C",
+      "MC_i",
+      "G_MC",
+      "W_net",
+      "qS",
+      "qD",
+      "G_CG",
+      "Wused_i",
+      "SSI_i",
+      "Wused_EC",
+      "SSI_EC",
+      "SCI_i",
+      "SCI_EC",
+      "CS_i_EQ",
+      "CS_i_CG",
+      "CS_i_MC",
+      "CS_EC",
+      "x_EQ",
+      "x_CG",
+      "x_MC",
+      "x_G",
+      "x_C",
+      "FI_EC_EQ_avg",
+      "FI_EC_CG_avg",
+      "FI_EC_MC_avg",
+      "FI_EC_G_avg",
+      "FI_EC_C_avg",
+      "SSI_EC_avg",
+      "SCI_EC_avg",
+      "CS_EC_avg",
+      "f_EC_EQ",
+      "f_EC_CG",
+      "f_EC_MC",
+      "optimal_method"
+    ],
+    "pseudocode": [
+      "Step 1: Calculate individual demand/surplus W_d[t, i] = W_c[t, i] - W_g[t, i] for all t and i.",
+      "Step 2: Compute baseline CostI[t, i] = W_d[t, i] * ToU[t] if W_d[t, i] > 0 else 0.",
+      "Step 3: Compute baseline RevI_raw[t, i] = -W_d[t, i] * FiT[t] if W_d[t, i] <= 0 else 0.",
+      "Step 4: Compute individual revenues RevI[t, i] = RevI_raw[t, i] + W_gs[t] * q[i] * FiT[t].",
+      "Step 5: Compute individual Standalone payment PayI[t, i] = CostI[t, i] - RevI[t, i].",
+      "Step 6: Aggregate stand-alone payments Pay_0[t] = sum over members i of PayI[t, i].",
+      "Step 7: Sum community demands Sum_W_d[t] = sum over members i of W_d[t, i].",
+      "Step 8: Compute Community Revenue Rev_EC[t] = (W_gs[t] - Sum_W_d[t]) * FiT[t] if W_gs[t] > Sum_W_d[t] else 0.",
+      "Step 9: Compute Community Cost Cost_EC[t] = (Sum_W_d[t] - W_gs[t]) * ToU[t] if Sum_W_d[t] > W_gs[t] else 0.",
+      "Step 10: Compute Community Payment Pay_EC[t] = Cost_EC[t] - Rev_EC[t].",
+      "Step 11: Compute Community Gain G_EC[t] = Pay_0[t] - Pay_EC[t].",
+      "Step 12: Distribute gains via Equal Quota G_EQ[t, i] = G_EC[t] / n.",
+      "Step 13: Distribute gains via Generation-based G_G[t, i] = q[i] * G_EC[t].",
+      "Step 14: Distribute gains via Consumption-based G_C[t, i] = (W_c[t, i] / sum over j of W_c[t, j]) * G_EC[t].",
+      "Step 15: Compute Marginal Contribution MC_i[t, i] for each member i by subtracting the gain of community without i from G_EC[t]. Specifically, evaluate the payment without i: sum of W_d over j != i against W_gs * (1 - q_i) using ToU and FiT, subtract this from standalone payments of all other members, and compute the difference from G_EC.",
+      "Step 16: Distribute gains via Marginal Contribution G_MC[t, i] = (MC_i[t, i] / sum over j of MC_i[t, j]) * G_EC[t]. If sum is 0, fallback to G_EC[t] / n.",
+      "Step 17: Compute individual net energy metered W_net[t, i] = W_c[t, i] - W_g[t, i] - W_gs[t] * q[i].",
+      "Step 18: Compute surplus quota qS[t, i] = W_net[t, i] / sum over j where W_net[t, j] < 0 if W_net[t, i] < 0 else 0.",
+      "Step 19: Compute deficit quota qD[t, i] = W_net[t, i] / sum over j where W_net[t, j] > 0 if W_net[t, i] > 0 else 0.",
+      "Step 20: Compute Consumption-Generation share G_CG[t, i] = (1 - qD[t, i]) * G_EC[t] / n if W_net[t, i] > 0 else (1 + qS[t, i]) * G_EC[t] / n.",
+      "Step 21: Compute used local generation Wused_i[t, i] = min(W_c[t, i], W_g[t, i] + W_gs[t] * q[i]).",
+      "Step 22: Compute individual Self-Sufficiency index SSI_i[t, i] = Wused_i[t, i] / W_c[t, i] (or 1.0 if W_c is 0).",
+      "Step 23: Compute used community generation Wused_EC[t] = min(sum over i of W_c[t, i], W_gs[t] + sum over i of W_g[t, i]).",
+      "Step 24: Compute Community Self-Sufficiency Index SSI_EC[t] = Wused_EC[t] / sum over i of W_c[t, i] (or 1.0 if sum is 0).",
+      "Step 25: Compute individual Self-Consumption Index SCI_i[t, i] = Wused_i[t, i] / (W_g[t, i] + W_gs[t] * q[i]) (or 1.0 if denominator is 0).",
+      "Step 26: Compute Community Self-Consumption Index SCI_EC[t] = Wused_EC[t] / (W_gs[t] + sum over i of W_g[t, i]) (or 1.0 if denominator is 0).",
+      "Step 27: Compute individual hourly savings CS_i_EQ, CS_i_CG, CS_i_MC using the formula: (G[t, i] / PayI[t, i]) * 100. Default to 0 if PayI[t, i] is 0.",
+      "Step 28: Compute Community savings CS_EC[t] = (1 - Pay_EC[t] / Pay_0[t]) * 100 (or 0 if Pay_0[t] is 0).",
+      "Step 29: Calculate normalized gains x_EQ, x_CG, x_MC, x_G, and x_C by dividing distributed gains by (W_g[t, i] + W_gs[t] * q[i]). Default to 0 if denominator is 0.",
+      "Step 30: Calculate Jain's fairness index per timestep t for EQ, CG, MC, G-based, and C-based, then take the average over all t to obtain FI_EC_EQ_avg, FI_EC_CG_avg, FI_EC_MC_avg, FI_EC_G_avg, and FI_EC_C_avg.",
+      "Step 31: Compute scalar metric averages over simulated time: SSI_EC_avg = mean(SSI_EC), SCI_EC_avg = mean(SCI_EC), and CS_EC_avg = mean(CS_EC).",
+      "Step 32: Evaluate strategy objectives: f_EC_EQ = a * FI_EC_EQ_avg + b * SSI_EC_avg * (1 + d_EQ), f_EC_CG = a * FI_EC_CG_avg + b * SSI_EC_avg * (1 + d_CG), f_EC_MC = a * FI_EC_MC_avg + b * SSI_EC_avg * (1 + d_MC).",
+      "Step 33: Find the method name that yields the maximum value among f_EC_EQ, f_EC_CG, f_EC_MC and assign it to optimal_method."
+    ],
+    "result_dict_keys": [
+      "W_d",
+      "CostI",
+      "RevI",
+      "PayI",
+      "Pay_0",
+      "Pay_EC",
+      "G_EC",
+      "G_EQ",
+      "G_G",
+      "G_C",
+      "G_MC",
+      "G_CG",
+      "SSI_i",
+      "SSI_EC",
+      "SCI_i",
+      "SCI_EC",
+      "CS_i_EQ",
+      "CS_i_CG",
+      "CS_i_MC",
+      "CS_EC",
+      "FI_EC_EQ_avg",
+      "FI_EC_CG_avg",
+      "FI_EC_MC_avg",
+      "FI_EC_G_avg",
+      "FI_EC_C_avg",
+      "SSI_EC_avg",
+      "SCI_EC_avg",
+      "CS_EC_avg",
+      "f_EC_EQ",
+      "f_EC_CG",
+      "f_EC_MC",
+      "optimal_method"
+    ],
+    "validation_checks": [
+      "Check that load (W_c) and generation (W_g) are of identical shape.",
+      "Ensure that length of parameters W_gs and ToU matches the number of timesteps T.",
+      "Validate that member quota q sums up to 1.0 (or is close to 1.0 within epsilon).",
+      "Check that the parameters a and b are positive scalars.",
+      "Verify that division by zero is handled when calculating self-sufficiency index, self-consumption index, cost savings, normalized gains, and Jain's fairness index."
+    ]
+  }
+}
